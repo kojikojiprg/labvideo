@@ -1,3 +1,6 @@
 [submodule "submodules/llava"]
 	path = submodules/llava
 	url = https://github.com/haotian-liu/LLaVA.git
+[submodule "submodules/mmyolo"]
+	path = submodules/mmyolo
+	url = https://github.com/open-mmlab/mmyolo.git
