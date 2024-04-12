@@ -1,4 +1,5 @@
 import sys
+
 import numpy as np
 from mmdet.apis import inference_detector, init_detector
 from mmengine.config import Config
@@ -39,7 +40,8 @@ class YOLO:
     def _process_det_results(self, det_result):
         pred_instance = det_result.pred_instances.cpu().numpy()
         bboxes = np.concatenate(
-            (pred_instance.bboxes, pred_instance.scores[:, None]), axis=1
+            (pred_instance.bboxes, pred_instance.scores[:, None], pred_instance.labels.reshape(-1, 1)),
+            axis=1,
         )
         bboxes = bboxes[pred_instance.scores > self._cfg.th_conf]
         bboxes = bboxes[nms(bboxes, self._cfg.th_iou)]
