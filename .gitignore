@@ -1,6 +1,7 @@
 video/
 annotation/
 out/
+notebooks/
 *.json
 *.tsv
 *.xlsx
