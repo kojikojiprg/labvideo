@@ -20,8 +20,9 @@ def load(json_path):
     return data
 
 
-def dump(data, json_path):
-    os.makedirs(os.path.dirname(json_path), exist_ok=True)
+def dump(json_path, data):
+    if os.path.dirname(json_path) != "":
+        os.makedirs(os.path.dirname(json_path), exist_ok=True)
 
     with open(json_path, "w") as f:
         json.dump(data, f, cls=MyEncoder)
