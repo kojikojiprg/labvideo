@@ -45,6 +45,6 @@ for video_path in tqdm(video_paths, ncols=100):
     header = "n_frame\tx1\ty1\tx2\ty2\tconf\tclass"
     fmt = ("%d", "%f", "%f", "%f", "%f", "%f", "%d")
     yolo_tsv_path = os.path.join(out_dir, f"{video_name}_yolo.tsv")
-    np.savetxt(yolo_tsv_path, yolo_rslt, fmt, "\t", header=header)
+    np.savetxt(yolo_tsv_path, yolo_rslt, fmt, "\t", header=header, comments="")
 
     del cap, wtr, yolo_rslt
