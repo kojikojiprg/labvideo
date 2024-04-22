@@ -54,7 +54,7 @@ class Capture:
 
 
 class Writer:
-    def __init__(self, out_path, fps, size, fmt="mp4v"):
+    def __init__(self, out_path, fps, size, fmt="avc1"):
         out_dir = os.path.dirname(out_path)
         if not os.path.exists(out_dir):
             os.makedirs(out_dir, exist_ok=True)
