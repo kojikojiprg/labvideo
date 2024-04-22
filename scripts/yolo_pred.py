@@ -14,7 +14,7 @@ config_path = "configs/yolo.yaml"
 model = YOLO(config_path, "cuda")
 
 # get all video path
-video_paths = glob(os.path.join("video", "*.mp4"))
+video_paths = sorted(glob(os.path.join("video", "*.mp4")))
 
 for video_path in tqdm(video_paths, ncols=100):
     # oepn video
