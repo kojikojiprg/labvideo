@@ -7,11 +7,11 @@ import numpy as np
 
 
 class Capture:
-    def __init__(self, in_path: str):
-        if not os.path.isfile(in_path):
-            raise ValueError(f"not exist file {in_path}")
+    def __init__(self, path: str):
+        if not os.path.isfile(path):
+            raise ValueError(f"not exist file {path}")
 
-        self._cap = cv2.VideoCapture(in_path)
+        self._cap = cv2.VideoCapture(path)
 
         self.fps = int(self._cap.get(cv2.CAP_PROP_FPS))
         self.size = (
@@ -54,14 +54,14 @@ class Capture:
 
 
 class Writer:
-    def __init__(self, out_path, fps, size, fmt="mp4v"):
-        out_dir = os.path.dirname(out_path)
+    def __init__(self, path, fps, size, fmt="mp4v"):
+        out_dir = os.path.dirname(path)
         if not os.path.exists(out_dir):
             os.makedirs(out_dir, exist_ok=True)
 
         # writer object
         fmt = cv2.VideoWriter_fourcc(*fmt)
-        self._writer = cv2.VideoWriter(out_path, fmt, fps, size)
+        self._writer = cv2.VideoWriter(path, fmt, fps, size)
 
     def __del__(self):
         self._writer.release()
