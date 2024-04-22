@@ -13,7 +13,7 @@ class Capture:
 
         self._cap = cv2.VideoCapture(path)
 
-        self.fps = int(self._cap.get(cv2.CAP_PROP_FPS))
+        self.fps = self._cap.get(cv2.CAP_PROP_FPS)
         self.size = (
             int(self._cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
             int(self._cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
