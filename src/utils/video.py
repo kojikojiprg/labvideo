@@ -54,13 +54,13 @@ class Capture:
 
 
 class Writer:
-    def __init__(self, out_path, fps, size, fmt="avc1"):
+    def __init__(self, out_path, fps, size, fmt="mp4v"):
         out_dir = os.path.dirname(out_path)
         if not os.path.exists(out_dir):
             os.makedirs(out_dir, exist_ok=True)
 
         # writer object
-        fmt = cv2.VideoWriter_fourcc(fmt[0], fmt[1], fmt[2], fmt[3])
+        fmt = cv2.VideoWriter_fourcc(*fmt)
         self._writer = cv2.VideoWriter(out_path, fmt, fps, size)
 
     def __del__(self):
