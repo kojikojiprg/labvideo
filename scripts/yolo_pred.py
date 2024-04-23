@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 from glob import glob
@@ -8,6 +9,10 @@ from tqdm import tqdm
 sys.path.append("src")
 from model import YOLO
 from utils import video, vis
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-v", "--video", action="store_true")
+args = parser.parse_args()
 
 # create model
 config_path = "configs/yolo.yaml"
@@ -26,8 +31,9 @@ for video_path in tqdm(video_paths, ncols=100):
     os.makedirs(out_dir, exist_ok=True)
 
     # create video writer
-    yolo_video_path = os.path.join(out_dir, f"{video_name}_yolo.mp4")
-    wtr = video.Writer(yolo_video_path, cap.fps, cap.size)
+    if args.video:
+        yolo_video_path = os.path.join(out_dir, f"{video_name}_yolo.mp4")
+        wtr = video.Writer(yolo_video_path, cap.fps, cap.size)
 
     # predict using yolo
     yolo_rslt = []
@@ -39,7 +45,8 @@ for video_path in tqdm(video_paths, ncols=100):
         for bbox in bboxs:
             frame = vis.plot_bbox_on_frame(frame, bbox)
             yolo_rslt.append([frame_num] + bbox.tolist())
-        wtr.write(frame)
+        if args.video:
+            wtr.write(frame)
 
     # save tsv
     header = "n_frame\tx1\ty1\tx2\ty2\tconf\tclass"
@@ -47,4 +54,6 @@ for video_path in tqdm(video_paths, ncols=100):
     yolo_tsv_path = os.path.join(out_dir, f"{video_name}_yolo.tsv")
     np.savetxt(yolo_tsv_path, yolo_rslt, fmt, "\t", header=header, comments="")
 
-    del cap, wtr, yolo_rslt
+    del cap, yolo_rslt
+    if args.video:
+        del wtr
