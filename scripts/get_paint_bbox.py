@@ -9,10 +9,15 @@ from utils import json_handler, video
 
 ann_json_path = "annotation/annotation.json"
 ann_json = json_handler.load(ann_json_path)
+info_json_path = "annotation/info.json"
+info_json = json_handler.load(info_json_path)
 
 paint_bbox_json = {}
 error_paint_videos = [("video_id", "aid", "error")]
 for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
+    if video_id not in info_json:
+        tqdm.write(f"miss {video_id}")
+        continue
     paint_bbox_json[video_id] = []
     for ann in tqdm(ann_lst, ncols=100, leave=False):
         if ann["type"] != "Paint":
