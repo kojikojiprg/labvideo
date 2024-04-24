@@ -90,7 +90,7 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
     ann_tsv = []
     for count, ann in ann_dict.items():
         label = ann["label"]
-        comment = ann["comment"]
+        comment = ann["comment"].replace(" ", "")
         start_frame = int(ann["start_time"] * cap.fps)
         if int(ann["end_time"]) > 0:
             end_frame = int(ann["end_time"] * cap.fps)
