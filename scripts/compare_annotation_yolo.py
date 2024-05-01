@@ -48,7 +48,7 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
     cap = video.Capture(f"video/{video_name}.mp4")
     frame_count = cap.frame_count
     frame_size = cap.size
-    _, frame = cap.read()
+    _, frame = cap.read(30 * 5)
     del cap
 
     fig = plt.figure(figsize=(8, 12))
