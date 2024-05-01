@@ -70,6 +70,8 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
             else:
                 paint_aid = paint_ann["aid"]
                 paint_text = paint_ann["text"]
+                if paint_text == "":
+                    paint_text = "null"
                 paint_bbox = [
                     data["bbox"] for data in paint_data if data["aid"] == paint_aid
                 ]
