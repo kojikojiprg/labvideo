@@ -31,6 +31,14 @@ def _get_paint_ann(ann_list, reply):
                 return ann
 
 
+def _check_ann_dict_key(count, ann_dict):
+    if count in ann_dict:
+        count += 0.1
+        return _check_ann_dict_key(count, ann_dict)
+    else:
+        return count
+
+
 for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
     if video_id not in info_json:
         tqdm.write(f"{video_id} is not in info.json")
@@ -56,17 +64,24 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
             paint_ann = _get_paint_ann(ann_lst, reply)
             if paint_ann is None:
                 tqdm.write(f"Paint data {count} of {video_name} couldn't be found.")
-                continue
-            paint_aid = paint_ann["aid"]
-            paint_text = paint_ann["text"]
-            paint_bbox = [
-                data["bbox"] for data in paint_data if data["aid"] == paint_aid
-            ]
-            paint_center = [
-                data["center"] for data in paint_data if data["aid"] == paint_aid
-            ]
+                # continue
+                paint_aid = paint_bbox = paint_center = None
+                paint_text = "null"
+            else:
+                paint_aid = paint_ann["aid"]
+                paint_text = paint_ann["text"]
+                paint_bbox = [
+                    data["bbox"] for data in paint_data if data["aid"] == paint_aid
+                ]
+                paint_center = [
+                    data["center"] for data in paint_data if data["aid"] == paint_aid
+                ]
 
             # create annotation dict
+            count = _check_ann_dict_key(count, ann_dict)
+            if type(count) is not int:
+                sufix = str(count).split(".")[1]
+                comment += f"_{sufix}"
             ann_dict[count] = {
                 "start_time": start_time,
                 "end_time": -1.0,
@@ -98,10 +113,17 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
             end_frame = cap.frame_count
 
         for n_frame in range(start_frame, end_frame + 1):
-            for bbox, center in zip(ann["bbox"], ann["center"]):
-                x1, y1, x2, y2 = bbox
-                xc, yc = center
+            if ann["bbox"] is None and ann["center"] is None:
+                x1 = y1 = x2 = y2 = xc = yc = 0.0
                 ann_tsv.append([n_frame, x1, y1, x2, y2, xc, yc, count, label, comment])
+            else:
+                for bbox, center in zip(ann["bbox"], ann["center"]):
+                    if bbox is not None and center is not None:
+                        x1, y1, x2, y2 = bbox
+                        xc, yc = center
+                    else:
+                        x1 = y1 = x2 = y2 = xc = yc = 0.0
+                    ann_tsv.append([n_frame, x1, y1, x2, y2, xc, yc, count, label, comment])
 
     ann_tsv = sorted(ann_tsv, key=lambda x: x[0])
     header = "n_frame\tx1\ty1\tx2\ty2\txc\tyc\tcount\tlabel\tcomment"

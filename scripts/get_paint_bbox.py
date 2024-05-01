@@ -29,6 +29,7 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
         cap = video.Capture(paint_video_path)
         if not cap.is_opened:
             error_paint_videos.append((video_id, aid, "Couldn't open paint video"))
+            paint_bbox_json[video_id].append({"aid": aid, "bbox": None, "center": None})
             continue
 
         # read first and last frames
@@ -60,6 +61,7 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
         )
         if len(contours) == 0:
             error_paint_videos.append((video_id, aid, "No painted circle"))
+            paint_bbox_json[video_id].append({"aid": aid, "bbox": None, "center": None})
             continue
 
         # detect bboxs
