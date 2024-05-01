@@ -10,6 +10,8 @@ from tqdm import tqdm
 sys.path.append("src")
 from utils import json_handler, video
 
+plt.rcParams["axes.prop_cycle"] = plt.cycler("color", plt.get_cmap("tab20").colors)
+
 # params
 th_size = 20000
 th_conf = 0.3
@@ -46,6 +48,7 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
     cap = video.Capture(f"video/{video_name}.mp4")
     frame_count = cap.frame_count
     frame_size = cap.size
+    _, frame = cap.read()
     del cap
 
     fig = plt.figure(figsize=(8, 12))
@@ -70,7 +73,7 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
 
     # plot annotation
     if len(ann_data) > 0:
-        for label in np.unique(ann_data.T[8]):
+        for i, label in enumerate(np.unique(ann_data.T[8])):
             tmp_data = ann_data[np.where(ann_data.T[8] == label)[0]]
             X = tmp_data.T[5].astype(float)
             Y = tmp_data.T[6].astype(float)
@@ -78,6 +81,19 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
             ax.scatter(X, Y, Z, marker="o", label=label, s=10, alpha=0.9)
     else:
         tqdm.write(f"{video_name} doesn't have annotation.")
+
+    # show vide oframe on the bottom of graph
+    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2RGBA)
+    frame = frame / 255
+    X, Y = np.mgrid[0 : frame_size[0], 0 : frame_size[1]]
+    ax.plot_surface(
+        X,
+        Y,
+        np.atleast_2d(0),
+        rstride=10,
+        cstride=10,
+        facecolors=frame.transpose(1, 0, 2),
+    )
 
     ax.set_box_aspect((frame_size[0], frame_size[1] * 1.5, frame_size[0] * 2.0))
     ax.set_xlabel("x")
@@ -91,7 +107,9 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
 
     # img rotation
     imgs = []
-    for angle in tqdm(range(0, 360, 5), ncols=100, leave=False, desc=f"{video_name} rotation"):
+    for angle in tqdm(
+        range(0, 360, 5), ncols=100, leave=False, desc=f"{video_name} rotation"
+    ):
         ax.view_init(elev=30, azim=angle)
         fig.canvas.draw()
         img = np.array(fig.canvas.renderer.buffer_rgba())
