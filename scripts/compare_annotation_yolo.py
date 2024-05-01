@@ -54,6 +54,21 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
     fig = plt.figure(figsize=(8, 12))
     ax = fig.add_subplot(111, projection="3d")
 
+    # show vide oframe on the bottom of graph
+    frame[frame < 10] = 255
+    frame = frame / 255
+    X, Y = np.mgrid[0 : frame_size[0], 0 : frame_size[1]]
+    ax.plot_surface(
+        X,
+        Y,
+        np.atleast_2d(0),
+        rstride=20,
+        cstride=20,
+        facecolor="white",
+        facecolors=frame.transpose(1, 0, 2),
+        alpha=0.1,
+    )
+
     # plot yolo
     for pred in tqdm(yolo_preds, ncols=100, leave=False, desc=f"{video_name} plot"):
         z, x1, y1, x2, y2 = pred[:5].astype(int)
@@ -82,19 +97,6 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
     else:
         tqdm.write(f"{video_name} doesn't have annotation.")
 
-    # show vide oframe on the bottom of graph
-    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2RGBA)
-    frame = frame / 255
-    X, Y = np.mgrid[0 : frame_size[0], 0 : frame_size[1]]
-    ax.plot_surface(
-        X,
-        Y,
-        np.atleast_2d(0),
-        rstride=10,
-        cstride=10,
-        facecolors=frame.transpose(1, 0, 2),
-    )
-
     ax.set_box_aspect((frame_size[0], frame_size[1] * 1.5, frame_size[0] * 2.0))
     ax.set_xlabel("x")
     ax.set_ylabel("y")
@@ -110,7 +112,7 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
     for angle in tqdm(
         range(0, 360, 5), ncols=100, leave=False, desc=f"{video_name} rotation"
     ):
-        ax.view_init(elev=30, azim=angle)
+        ax.view_init(elev=20, azim=angle)
         fig.canvas.draw()
         img = np.array(fig.canvas.renderer.buffer_rgba())
         img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
