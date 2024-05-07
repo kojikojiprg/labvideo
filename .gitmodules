@@ -7,3 +7,4 @@
 [submodule "submodules/BoostTrack"]
 	path = submodules/BoostTrack
 	url = https://github.com/vukasin-stanojevic/BoostTrack.git
+	ignore = dirty
