@@ -7,3 +7,6 @@
 [submodule "submodules/mmtracking"]
 	path = submodules/mmtracking
 	url = https://github.com/open-mmlab/mmtracking.git
+[submodule "submodules/BoostTrack"]
+	path = submodules/BoostTrack
+	url = https://github.com/vukasin-stanojevic/BoostTrack.git
