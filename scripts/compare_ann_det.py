@@ -42,7 +42,7 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
         f"out/{video_name}/{video_name}_ann.tsv", skiprows=1, dtype=str
     )
     yolo_preds = np.loadtxt(
-        f"out/{video_name}/{video_name}_yolo.tsv", skiprows=1, dtype=float
+        f"out/{video_name}/{video_name}_det.tsv", skiprows=1, dtype=float
     )
 
     cap = video.Capture(f"video/{video_name}.mp4")
@@ -54,20 +54,20 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
     fig = plt.figure(figsize=(8, 12))
     ax = fig.add_subplot(111, projection="3d")
 
-    # show vide oframe on the bottom of graph
-    frame[frame < 10] = 255
-    frame = frame / 255
-    X, Y = np.mgrid[0 : frame_size[0], 0 : frame_size[1]]
-    ax.plot_surface(
-        X,
-        Y,
-        np.atleast_2d(0),
-        rstride=20,
-        cstride=20,
-        facecolor="white",
-        facecolors=frame.transpose(1, 0, 2),
-        alpha=0.1,
-    )
+    # show video frame on the bottom of graph
+    # frame[frame < 10] = 255
+    # frame = frame / 255
+    # X, Y = np.mgrid[0 : frame_size[0], 0 : frame_size[1]]
+    # ax.plot_surface(
+    #     X,
+    #     Y,
+    #     np.atleast_2d(0),
+    #     rstride=5,
+    #     cstride=5,
+    #     facecolor="white",
+    #     facecolors=frame.transpose(1, 0, 2),
+    #     alpha=0.1,
+    # )
 
     # plot yolo
     for pred in tqdm(yolo_preds, ncols=100, leave=False, desc=f"{video_name} plot"):
@@ -122,7 +122,8 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
     # write video
     size = imgs[0].shape[1::-1]
     # wrt = video.Writer(f"out/{video_name}/{video_name}_plot.mp4", 30, size)
-    out_dir = "out/compare_annotation_yolo"
+    out_dir = "out/compare_ann_det"
+    # out_dir = "out/annotation_3d_plot"
     os.makedirs(out_dir, exist_ok=True)
     wrt = video.Writer(f"{out_dir}/{video_name}_plot.mp4", 30, size)
     wrt.write_each(imgs)
