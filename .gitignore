@@ -1,6 +1,7 @@
 video/
 annotation/
 out/
+models/
 notebooks/
 *.json
 *.tsv
