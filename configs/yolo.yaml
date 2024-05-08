@@ -1,5 +1,0 @@
-config: submodules/mmyolo/configs/yolov8/yolov8_x_syncbn_fast_8xb16-500e_coco.py
-weights: https://download.openmmlab.com/mmyolo/v0/yolov8/yolov8_x_syncbn_fast_8xb16-500e_coco/yolov8_x_syncbn_fast_8xb16-500e_coco_20230218_023338-5674673c.pth
-
-th_conf: 0.05
-th_iou: 0.95

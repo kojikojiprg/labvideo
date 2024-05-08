@@ -1,1 +1,1 @@
-from .yolo import YOLO
+from .object_tracking import ObjectTracking

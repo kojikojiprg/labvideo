@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 
 sys.path.append("src")
-from model import YOLO
+from model import ObjectTracking
 from utils import video, vis
 
 parser = argparse.ArgumentParser()
@@ -15,8 +15,8 @@ parser.add_argument("-v", "--video", action="store_true")
 args = parser.parse_args()
 
 # create model
-config_path = "configs/yolo.yaml"
-model = YOLO(config_path, "cuda")
+config_path = "configs/object_detection.yml"
+model = ObjectTracking(config_path, "cuda")
 
 # get all video path
 video_paths = sorted(glob(os.path.join("video", "*.mp4")))
