@@ -4,3 +4,4 @@
 [submodule "submodules/SMILEtrack"]
 	path = submodules/SMILEtrack
 	url = https://github.com/WWangYuHsiang/SMILEtrack.git
+	ignore = dirty
