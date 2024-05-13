@@ -43,13 +43,15 @@ for video_path in tqdm(video_paths, ncols=100):
         ret, frame = cap.read()
         bboxs = model.predict(frame)
         for bbox in bboxs:
-            frame = vis.plot_bbox_on_frame(frame, bbox)
+            bbox = np.array(bbox)
             det_rslt.append([frame_num] + bbox.tolist())
+            if args.video:
+                frame = vis.plot_bbox_on_frame(frame, bbox)
         if args.video:
             wtr.write(frame)
 
     # save tsv
-    header = "n_frame\tx1\ty1\tx2\ty2\tconf\tclass"
+    header = "n_frame\tx1\ty1\tx2\ty2\tconf\ttid"
     fmt = ("%d", "%f", "%f", "%f", "%f", "%f", "%d")
     det_tsv_path = os.path.join(out_dir, f"{video_name}_det.tsv")
     np.savetxt(det_tsv_path, det_rslt, fmt, "\t", header=header, comments="")

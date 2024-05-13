@@ -7,6 +7,7 @@ def plot_bbox_on_frame(frame: NDArray, bbox: NDArray) -> NDArray:
     pt1 = (bbox[0], bbox[1])
     pt2 = (bbox[2], bbox[3])
     frame = cv2.rectangle(frame, pt1, pt2, (0, 255, 0), 2)
+    frame = cv2.putText(frame, str(bbox[5]), pt1, cv2.FONT_HERSHEY_COMPLEX, 3, (0, 255, 0))
     return frame
 
 

@@ -9,6 +9,9 @@ from ultralytics import YOLO
 sys.path.append("src")
 from utils import yaml_handler
 
+sys.path.append("submodules/SMILEtrack/SMILEtrack_Official")
+from tracker.mc_SMILEtrack import SMILEtrack
+
 
 class ObjectTracking:
     def __init__(self, cfg_path: dict, device: str):
@@ -21,8 +24,10 @@ class ObjectTracking:
         self._download_weights(yolo_url, yolo_path)
         self._yolo = YOLO(yolo_path, verbose=False).to(self._device)
 
+        self._tracker = SMILEtrack(self._cfg.tracking)
+
     def __del__(self):
-        del self._det_model
+        del self._yolo, self._tracker
 
     @staticmethod
     def _download_weights(url, path):
@@ -36,7 +41,28 @@ class ObjectTracking:
         bboxes = bboxes[bboxes[:, 4] > self._cfg.th_conf]
         bboxes = bboxes[nms(bboxes, self._cfg.th_iou)]
 
-        return bboxes
+        targets = self._tracker.update(bboxes, img)
+
+        results = []
+        online_tlwhs = []
+        online_ids = []
+        online_scores = []
+        online_cls = []
+        for t in targets:
+            tlwh = t.tlwh
+            tid = t.track_id
+            if tlwh[2] * tlwh[3] > self._cfg.tracking.min_box_area:
+                online_tlwhs.append(tlwh)
+                online_ids.append(tid)
+                online_scores.append(t.score)
+                online_cls.append(t.cls)
+
+                # save results
+                results.append(
+                    [tlwh[0], tlwh[1], tlwh[2], tlwh[3], t.score, tid]
+                )
+
+        return results
 
 
 def nms(dets: np.ndarray, thr: float) -> List[int]:
