@@ -1,4 +1,10 @@
-yolo: https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8x.pt
+yolo:
+  weights: https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8x.pt
+  th_conf: 0.0
+  th_iou: 0.95
+  max_area: 30000
+  min_area: 10
+
 tracking:
   track_high_thresh: 0.3
   track_low_thresh: 0.1
@@ -7,12 +13,8 @@ tracking:
   proximity_thresh: 0.5
   appearance_thresh: 0.25
   cmc_method: sparseOptFlow
-  min_box_area: 10.0
   name: exp
   ablation: False
   with_reid: False
   mot20: False
   match_thresh: 0.7
-
-th_conf: 0.05
-th_iou: 0.95

@@ -18,7 +18,7 @@ class ObjectTracking:
         self._cfg = yaml_handler.load(cfg_path)
         self._device = device
 
-        yolo_url = self._cfg.yolo
+        yolo_url = self._cfg.yolo.weights
         yolo_name = os.path.basename(yolo_url)
         yolo_path = f"./models/yolo/{yolo_name}"
         self._download_weights(yolo_url, yolo_path)
@@ -38,29 +38,32 @@ class ObjectTracking:
 
     def predict(self, img: np.array):
         bboxes = self._yolo.predict(img, verbose=False)[0].boxes.data.cpu().numpy()
-        bboxes = bboxes[bboxes[:, 4] > self._cfg.th_conf]
-        bboxes = bboxes[nms(bboxes, self._cfg.th_iou)]
+        bboxes = bboxes[bboxes[:, 4] > self._cfg.yolo.th_conf]
+        bboxes = bboxes[nms(bboxes, self._cfg.yolo.th_iou)]
+        areas = (bboxes[:, 2] - bboxes[:, 0]) * (bboxes[:, 3] - bboxes[:, 1])
+        bboxes = bboxes[
+            (self._cfg.yolo.min_area < areas) & (areas < self._cfg.yolo.max_area)
+        ]
 
         targets = self._tracker.update(bboxes, img)
 
         results = []
-        online_tlwhs = []
-        online_ids = []
-        online_scores = []
-        online_cls = []
         for t in targets:
-            tlwh = t.tlwh
-            tid = t.track_id
-            if tlwh[2] * tlwh[3] > self._cfg.tracking.min_box_area:
-                online_tlwhs.append(tlwh)
-                online_ids.append(tid)
-                online_scores.append(t.score)
-                online_cls.append(t.cls)
+            x, y, w, h = t.tlwh
 
-                # save results
-                results.append(
-                    [tlwh[0], tlwh[1], tlwh[2], tlwh[3], t.score, tid]
-                )
+            # save results
+            results.append(
+                [
+                    x,
+                    y,
+                    x + w,
+                    y + h,
+                    t.score,
+                    t.track_id,
+                    t.start_frame - 1,
+                    t.tracklet_len,
+                ]
+            )
 
         return results
 

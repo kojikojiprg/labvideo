@@ -12,16 +12,20 @@ from utils import video, vis
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-v", "--video", action="store_true")
+parser.add_argument(
+    "-c", "--config_path", required=False, default="configs/object_detection.yml"
+)
 args = parser.parse_args()
 
-# create model
-config_path = "configs/object_detection.yml"
-model = ObjectTracking(config_path, "cuda")
+config_path = args.config_path
 
 # get all video path
 video_paths = sorted(glob(os.path.join("video", "*.mp4")))
 
 for video_path in tqdm(video_paths, ncols=100):
+    # create model
+    model = ObjectTracking(config_path, "cuda")
+
     # oepn video
     cap = video.Capture(video_path)
 
@@ -51,11 +55,12 @@ for video_path in tqdm(video_paths, ncols=100):
             wtr.write(frame)
 
     # save tsv
-    header = "n_frame\tx1\ty1\tx2\ty2\tconf\ttid"
-    fmt = ("%d", "%f", "%f", "%f", "%f", "%f", "%d")
+    header = "n_frame\tx1\ty1\tx2\ty2\tconf\ttid\tstart_frame\ttracklet_len"
+    fmt = ("%d", "%f", "%f", "%f", "%f", "%f", "%d", "%d", "%d")
     det_tsv_path = os.path.join(out_dir, f"{video_name}_det.tsv")
     np.savetxt(det_tsv_path, det_rslt, fmt, "\t", header=header, comments="")
 
+    del model  # reset model
     del cap, det_rslt
     if args.video:
         del wtr
