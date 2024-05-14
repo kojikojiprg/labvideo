@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 
@@ -12,10 +13,14 @@ from utils import json_handler, video
 
 plt.rcParams["axes.prop_cycle"] = plt.cycler("color", plt.get_cmap("tab20").colors)
 
-# params
-th_size = 20000
-th_conf = 0.3
+# parser
+parser = argparse.ArgumentParser()
+parser.add_argument("-tc", "--th_conf", required=False, default=0.3)
+args = parser.parse_args()
 
+th_conf = args.th_conf
+
+# load json files
 ann_json = json_handler.load("annotation/annotation.json")
 info_json = json_handler.load("annotation/info.json")
 
@@ -75,8 +80,6 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
         w, h = x2 - x1, y2 - y1
         conf = pred[5]
         if z % 10 != 0:
-            continue
-        if w * h > th_size:
             continue
         if conf < th_conf:
             continue
