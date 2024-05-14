@@ -45,6 +45,8 @@ for video_path in tqdm(video_paths, ncols=100):
         range(cap.frame_count), ncols=100, leave=False, desc=video_name
     ):
         ret, frame = cap.read()
+        if np.all(frame == 0):
+            continue  # skip black frame
         bboxs = model.predict(frame)
         for bbox in bboxs:
             bbox = np.array(bbox)
