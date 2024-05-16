@@ -3,6 +3,7 @@ import sys
 import urllib.request
 from typing import List
 
+import cv2
 import numpy as np
 from ultralytics import YOLO
 
@@ -45,7 +46,11 @@ class ObjectTracking:
             (self._cfg.yolo.min_area < areas) & (areas < self._cfg.yolo.max_area)
         ]
 
-        targets = self._tracker.update(bboxes, img)
+        try:
+            targets = self._tracker.update(bboxes, img)
+        except cv2.error:
+            print(bboxes)
+            cv2.imwrite("error.jpg", img)
 
         results = []
         for t in targets:

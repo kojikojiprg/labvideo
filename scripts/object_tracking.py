@@ -22,7 +22,7 @@ config_path = args.config_path
 # get all video path
 video_paths = sorted(glob(os.path.join("video", "*.mp4")))
 
-for video_path in tqdm(video_paths, ncols=100):
+for video_path in tqdm(video_paths[14:], ncols=100):
     # create model
     model = ObjectTracking(config_path, "cuda")
 
@@ -45,7 +45,7 @@ for video_path in tqdm(video_paths, ncols=100):
         range(cap.frame_count), ncols=100, leave=False, desc=video_name
     ):
         ret, frame = cap.read()
-        if np.all(frame == 0):
+        if np.all(frame < 10):
             continue  # skip black frame
         bboxs = model.predict(frame)
         for bbox in bboxs:
