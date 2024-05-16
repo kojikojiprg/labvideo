@@ -1,5 +1,5 @@
 yolo:
-  weights: https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8x.pt
+  weights: https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8m.pt
   th_conf: 0.0
   th_iou: 0.95
   max_area: 30000

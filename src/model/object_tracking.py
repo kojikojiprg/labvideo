@@ -11,6 +11,7 @@ sys.path.append("src")
 from utils import yaml_handler
 
 sys.path.append("submodules/SMILEtrack/SMILEtrack_Official")
+np.float = float  # SMILEtrack uses np.float (numpy>=1.24 removed np.float)
 from tracker.mc_SMILEtrack import SMILEtrack
 
 
