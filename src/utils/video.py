@@ -45,12 +45,7 @@ class Capture:
         if idx is not None:
             self.set_pos_frame_count(idx)
 
-        ret, frame = self._cap.read()
-        if ret:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # BGR to RGB
-            return True, frame
-        else:
-            return False, None
+        return self._cap.read()
 
 
 class Writer:
@@ -68,25 +63,8 @@ class Writer:
         gc.collect()
 
     def write(self, frame):
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # RGB to BGR
         self._writer.write(frame)
 
     def write_each(self, frames):
         for frame in frames:
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # RGB to BGR
             self._writer.write(frame)
-
-
-def concat_frames(frame1: np.array, frame2: np.array) -> np.array:
-    # change frame2 height and merge to frame1
-    ratio = frame1.shape[0] / frame2.shape[0]
-    size = (round(frame2.shape[1] * ratio), frame1.shape[0])
-    frame2 = cv2.resize(frame2, size)
-    frame1 = np.concatenate([frame1, frame2], axis=1)
-
-    return frame1
-
-
-def get_concat_frame_size(frame: np.array, field: np.array) -> Tuple[int, ...]:
-    cmb_img = concat_frames(frame, field)
-    return cmb_img.shape[1::-1]
