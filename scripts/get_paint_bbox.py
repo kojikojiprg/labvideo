@@ -4,8 +4,8 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
-sys.path.append("src")
-from utils import json_handler, video
+sys.path.append(".")
+from src.utils import json_handler, video
 
 ann_json_path = "annotation/annotation.json"
 ann_json = json_handler.load(ann_json_path)

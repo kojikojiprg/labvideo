@@ -23,8 +23,8 @@ from llava.utils import disable_torch_init
 from tqdm import tqdm
 from transformers import TextStreamer
 
-sys.path.append("src")
-from utils import video
+sys.path.append(".")
+from src.utils import video
 
 warnings.filterwarnings("ignore")
 
@@ -51,7 +51,7 @@ load_8bit = False
 load_4bit = False
 
 # load prompt
-prompt_v = 2
+prompt_v = 0
 prompt_path = f"prompts/prompt_v{prompt_v}.txt"
 with open(prompt_path, "r") as f:
     inp = f.read()
@@ -117,6 +117,7 @@ with torch.inference_mode():
             pred_idxs = np.argpartition(-preds_tmp[:, 5], n_imgs)[:n_imgs]
             preds_tmp = preds_tmp[pred_idxs]
 
+        img_dir = f"out/{video_name}/images"
         imgs = []
         for pred in preds_tmp:
             x1, y1, x2, y2 = pred[1:5].astype(int)
@@ -125,7 +126,7 @@ with torch.inference_mode():
                 ValueError
             img = frame[y1:y2, x1:x2]
             imgs.append(img)
-        cv2.imwrite(f"images/tid{tid}.jpg", cv2.cvtColor(imgs[0], cv2.COLOR_RGB2BGR))
+        cv2.imwrite(f"{img_dir}/tid{tid}.jpg", cv2.cvtColor(imgs[0], cv2.COLOR_RGB2BGR))
 
         imgs_tensor = process_images(imgs, image_processor, {})
         imgs_tensor = imgs_tensor.to(model_llava.device, dtype=torch.float16)
@@ -154,27 +155,30 @@ with torch.inference_mode():
         # print("\noutputs")
         # print(outputs)
 
-        if "," in outputs:
-            label, conf = outputs.split(",")
-            label = label.lower()
-            conf = float(conf.replace(" ", ""))
-        elif "(" in outputs:
-            label, conf = outputs.split("(")
-            label = label.lower()
-            conf = float(conf.replace(")", ""))
-        elif "with" in outputs:
-            label, conf = outputs.split("with")
-            lavel = label.replace("'", "")
-            conf = float(conf[-5:-1])
-        else:
-            ValueError
+        # if "," in outputs:
+        #     label, conf = outputs.split(",")
+        #     label = label.lower()
+        #     conf = float(conf.replace(" ", ""))
+        # elif "(" in outputs:
+        #     label, conf = outputs.split("(")
+        #     label = label.lower()
+        #     conf = float(conf.replace(")", ""))
+        # elif "with" in outputs:
+        #     label, conf = outputs.split("with")
+        #     lavel = label.replace("'", "")
+        #     conf = float(conf[-5:-1])
+        # else:
+        #     ValueError
         # tqdm.write(f"{tid}, {label}, {conf}")
-        llava_preds.append([tid, label, conf])
+        # llava_preds.append([tid, label, conf])
+        llava_preds.append([tid, outputs])
 
-cols = "tid\tlabel\tconf"
+# cols = "tid\tlabel\tconf"
+cols = "tid\tlabel"
 np.savetxt(
     f"out/{video_name}/{video_name}_llava.tsv",
     llava_preds,
+    fmt="%s",
     delimiter="\t",
     header=cols,
     comments="",

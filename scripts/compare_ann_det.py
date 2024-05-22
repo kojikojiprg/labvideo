@@ -8,8 +8,8 @@ import numpy as np
 from mpl_toolkits.mplot3d import axes3d
 from tqdm import tqdm
 
-sys.path.append("src")
-from utils import json_handler, video
+sys.path.append(".")
+from src.utils import json_handler, video
 
 plt.rcParams["axes.prop_cycle"] = plt.cycler("color", plt.get_cmap("tab20").colors)
 

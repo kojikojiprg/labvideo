@@ -1,14 +1,14 @@
 import argparse
 import os
-import sys
 from glob import glob
+import sys
 
 import numpy as np
 from tqdm import tqdm
 
-sys.path.append("src")
-from model import ObjectTracking
-from utils import video, vis
+sys.path.append(".")
+from src.model import ObjectTracking
+from src.utils import video, vis
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-v", "--video", action="store_true")

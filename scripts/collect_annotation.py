@@ -4,8 +4,8 @@ import sys
 import numpy as np
 from tqdm import tqdm
 
-sys.path.append("src")
-from utils import json_handler, video, vis
+sys.path.append(".")
+from src.utils import json_handler, video, vis
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-v", "--video", action="store_true")
