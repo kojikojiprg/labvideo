@@ -38,6 +38,10 @@ class ObjectTracking:
         bboxs = self._yolo.predict(img, verbose=False)[0].boxes.data.cpu().numpy()
         bboxs = bboxs[bboxs[:, 4] > self._cfg.yolo.th_conf]
         bboxs = bboxs[nms(bboxs, self._cfg.yolo.th_iou)]
+        areas = (bboxs[:, 2] - bboxs[:, 0]) * (bboxs[:, 3] - bboxs[:, 1])
+        bboxs = bboxs[
+            (self._cfg.yolo.min_area < areas) & (areas < self._cfg.yolo.max_area)
+        ]
 
         try:
             targets = self._tracker.update(bboxs, img)

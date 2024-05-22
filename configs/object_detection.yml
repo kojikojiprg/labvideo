@@ -10,11 +10,8 @@ tracking:
   track_low_thresh: 0.05
   new_track_thresh: 0.05
   track_buffer: 20
-  proximity_thresh: 0.5
-  appearance_thresh: 0.25
   cmc_method: sparseOptFlow
   name: exp
   ablation: False
   with_reid: True
-  mot20: False
   match_thresh: 0.5
