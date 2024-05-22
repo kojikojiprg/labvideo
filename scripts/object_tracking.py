@@ -22,7 +22,7 @@ config_path = args.config_path
 # get all video path
 video_paths = sorted(glob(os.path.join("video", "*.mp4")))
 
-for video_path in tqdm(video_paths[14:], ncols=100):
+for video_path in tqdm(video_paths, ncols=100):
     # create model
     model = ObjectTracking(config_path, "cuda")
 
