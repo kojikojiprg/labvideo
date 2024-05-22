@@ -260,10 +260,6 @@ class SMILEtrack(object):
         self.max_time_lost = self.buffer_size
         self.kalman_filter = KalmanFilter()
 
-        # ReID module
-        self.proximity_thresh = args.proximity_thresh
-        self.appearance_thresh = args.appearance_thresh
-
         if args.with_reid:
             # self.encoder = FastReIDInterface(args.fast_reid_config, args.fast_reid_weights, args.device)
             # self.weight_path = "./pretrained/ver12.pt"
@@ -366,10 +362,6 @@ class SMILEtrack(object):
 
         # Associate with high score detection boxes
         ious_dists = matching.iou_distance(strack_pool, detections)
-        ious_dists_mask = ious_dists > self.proximity_thresh
-
-        if not self.args.mot20:
-            ious_dists = matching.fuse_score(ious_dists, detections)
 
         if self.args.with_reid:
 
@@ -383,21 +375,6 @@ class SMILEtrack(object):
                 dists = matching.gate(dists_iou, dists_emb)
             else:
                 dists = dists_iou
-
-        #             emb_dists = matching.embedding_distance(strack_pool, detections) / 2.0
-        #             raw_emb_dists = emb_dists.copy()
-        #             emb_dists[emb_dists > self.appearance_thresh] = 1.0
-        #             emb_dists[ious_dists_mask] = 1.0
-        #             dists = np.minimum(ious_dists, emb_dists)
-
-        # Popular ReID method (JDE / FairMOT)
-        # raw_emb_dists = matching.embedding_distance(strack_pool, detections)
-        # dists = matching.fuse_motion(self.kalman_filter, raw_emb_dists, strack_pool, detections)
-        # emb_dists = dists
-
-        # IoU making ReID
-        # dists = matching.embedding_distance(strack_pool, detections)
-        # dists[ious_dists_mask] = 1.0
         else:
             dists = ious_dists
 
@@ -466,8 +443,6 @@ class SMILEtrack(object):
         """Deal with unconfirmed tracks, usually tracks with only one beginning frame"""
         detections = [detections[i] for i in u_detection]
         dists = matching.iou_distance(unconfirmed, detections)
-        if not self.args.mot20:
-            dists = matching.fuse_score(dists, detections)
         matches, u_unconfirmed, u_detection = matching.linear_assignment(
             dists, thresh=0.7
         )
@@ -550,6 +525,6 @@ def remove_duplicate_stracks(stracksa, stracksb):
             dupb.append(q)
         else:
             dupa.append(p)
-    resa = [t for i, t in enumerate(stracksa) if not i in dupa]
-    resb = [t for i, t in enumerate(stracksb) if not i in dupb]
+    resa = [t for i, t in enumerate(stracksa) if i not in dupa]
+    resb = [t for i, t in enumerate(stracksb) if i not in dupb]
     return resa, resb
