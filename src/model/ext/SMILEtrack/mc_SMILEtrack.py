@@ -1,16 +1,14 @@
-import cv2
-import matplotlib.pyplot as plt
-import numpy as np
 from collections import deque
 
-from tracker import matching
-from tracker.gmc import GMC
-from tracker.basetrack import BaseTrack, TrackState
-from tracker.kalman_filter import KalmanFilter
-
-# from fast_reid.fast_reid_interfece import FastReIDInterface
-from .SLM import load_model
+import numpy as np
 import torch
+
+from .tracker import matching
+from .tracker.basetrack import BaseTrack, TrackState
+from .tracker.gmc import GMC
+from .tracker.kalman_filter import KalmanFilter
+from .tracker.SLM import load_model
+
 
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
@@ -18,7 +16,7 @@ class STrack(BaseTrack):
     def __init__(self, tlwh, score, cls, feat=None, feat_history=50):
 
         # wait activate
-        self._tlwh = np.asarray(tlwh, dtype=np.float)
+        self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
         self.mean, self.covariance = None, None
         self.is_activated = False
@@ -72,7 +70,9 @@ class STrack(BaseTrack):
             mean_state[6] = 0
             mean_state[7] = 0
 
-        self.mean, self.covariance = self.kalman_filter.predict(mean_state, self.covariance)
+        self.mean, self.covariance = self.kalman_filter.predict(
+            mean_state, self.covariance
+        )
 
     @staticmethod
     def multi_predict(stracks):
@@ -83,7 +83,9 @@ class STrack(BaseTrack):
                 if st.state != TrackState.Tracked:
                     multi_mean[i][6] = 0
                     multi_mean[i][7] = 0
-            multi_mean, multi_covariance = STrack.shared_kalman.multi_predict(multi_mean, multi_covariance)
+            multi_mean, multi_covariance = STrack.shared_kalman.multi_predict(
+                multi_mean, multi_covariance
+            )
             for i, (mean, cov) in enumerate(zip(multi_mean, multi_covariance)):
                 stracks[i].mean = mean
                 stracks[i].covariance = cov
@@ -111,7 +113,9 @@ class STrack(BaseTrack):
         self.kalman_filter = kalman_filter
         self.track_id = self.next_id()
 
-        self.mean, self.covariance = self.kalman_filter.initiate(self.tlwh_to_xywh(self._tlwh))
+        self.mean, self.covariance = self.kalman_filter.initiate(
+            self.tlwh_to_xywh(self._tlwh)
+        )
 
         self.tracklet_len = 0
         self.state = TrackState.Tracked
@@ -122,7 +126,9 @@ class STrack(BaseTrack):
 
     def re_activate(self, new_track, frame_id, new_id=False):
 
-        self.mean, self.covariance = self.kalman_filter.update(self.mean, self.covariance, self.tlwh_to_xywh(new_track.tlwh))
+        self.mean, self.covariance = self.kalman_filter.update(
+            self.mean, self.covariance, self.tlwh_to_xywh(new_track.tlwh)
+        )
         if new_track.curr_feat is not None:
             self.update_features(new_track.curr_feat)
         self.tracklet_len = 0
@@ -148,7 +154,9 @@ class STrack(BaseTrack):
 
         new_tlwh = new_track.tlwh
 
-        self.mean, self.covariance = self.kalman_filter.update(self.mean, self.covariance, self.tlwh_to_xywh(new_tlwh))
+        self.mean, self.covariance = self.kalman_filter.update(
+            self.mean, self.covariance, self.tlwh_to_xywh(new_tlwh)
+        )
 
         if new_track.curr_feat is not None:
             self.update_features(new_track.curr_feat)
@@ -162,7 +170,7 @@ class STrack(BaseTrack):
     @property
     def tlwh(self):
         """Get current position in bounding box format `(top left x, top left y,
-                width, height)`.
+        width, height)`.
         """
         if self.mean is None:
             return self._tlwh.copy()
@@ -223,13 +231,15 @@ class STrack(BaseTrack):
         return ret
 
     def __repr__(self):
-        return 'OT_{}_({}-{})'.format(self.track_id, self.start_frame, self.end_frame)
+        return "OT_{}_({}-{})".format(self.track_id, self.start_frame, self.end_frame)
+
 
 def extract_image_patches(image, bboxes):
     bboxes = np.round(bboxes).astype(np.int32)
-    patches = [image[box[1]:box[3], box[0]:box[2],:] for box in bboxes]
-    #bboxes = clip_boxes(bboxes, image.shape)
+    patches = [image[box[1] : box[3], box[0] : box[2], :] for box in bboxes]
+    # bboxes = clip_boxes(bboxes, image.shape)
     return patches
+
 
 class SMILEtrack(object):
     def __init__(self, args, frame_rate=30):
@@ -255,7 +265,7 @@ class SMILEtrack(object):
         self.appearance_thresh = args.appearance_thresh
 
         if args.with_reid:
-            #self.encoder = FastReIDInterface(args.fast_reid_config, args.fast_reid_weights, args.device)
+            # self.encoder = FastReIDInterface(args.fast_reid_config, args.fast_reid_weights, args.device)
             # self.weight_path = "./pretrained/ver12.pt"
             # self.encoder = load_model(self.weight_path)
             self.weight_path = "./models/SMILEtrack/ver12.pt"
@@ -300,36 +310,41 @@ class SMILEtrack(object):
             scores_keep = []
             classes_keep = []
 
-        '''Extract embeddings '''
+        """Extract embeddings """
         if self.args.with_reid:
 
-            #features_keep = self.encoder.inference(img, dets)
+            # features_keep = self.encoder.inference(img, dets)
 
             # set dets features
             patches_det = extract_image_patches(img, dets)
-            features = torch.zeros((len(patches_det),128), dtype=torch.float64)
-
+            features = torch.zeros((len(patches_det), 128), dtype=torch.float64)
 
             for time in range(len(patches_det)):
                 patches_det[time] = torch.tensor(patches_det[time]).cuda()
-                features[time,:] = self.encoder.inference_forward_fast(patches_det[time].float())
+                features[time, :] = self.encoder.inference_forward_fast(
+                    patches_det[time].float()
+                )
 
             features_keep = features.cpu().detach().numpy()
 
-
-
         if len(dets) > 0:
-            '''Detections'''
+            """Detections"""
             if self.args.with_reid:
-                detections = [STrack(STrack.tlbr_to_tlwh(tlbr), s, c, f) for
-                              (tlbr, s, c, f) in zip(dets, scores_keep, classes_keep, features_keep)]
+                detections = [
+                    STrack(STrack.tlbr_to_tlwh(tlbr), s, c, f)
+                    for (tlbr, s, c, f) in zip(
+                        dets, scores_keep, classes_keep, features_keep
+                    )
+                ]
             else:
-                detections = [STrack(STrack.tlbr_to_tlwh(tlbr), s, c) for
-                              (tlbr, s, c) in zip(dets, scores_keep, classes_keep)]
+                detections = [
+                    STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
+                    for (tlbr, s, c) in zip(dets, scores_keep, classes_keep)
+                ]
         else:
             detections = []
 
-        ''' Add newly detected tracklets to tracked_stracks'''
+        """ Add newly detected tracklets to tracked_stracks"""
         unconfirmed = []
         tracked_stracks = []  # type: list[STrack]
         for track in self.tracked_stracks:
@@ -338,7 +353,7 @@ class SMILEtrack(object):
             else:
                 tracked_stracks.append(track)
 
-        ''' Step 2: First association, with high score detection boxes'''
+        """ Step 2: First association, with high score detection boxes"""
         strack_pool = joint_stracks(tracked_stracks, self.lost_stracks)
 
         # Predict the current location with KF
@@ -351,7 +366,7 @@ class SMILEtrack(object):
 
         # Associate with high score detection boxes
         ious_dists = matching.iou_distance(strack_pool, detections)
-        ious_dists_mask = (ious_dists > self.proximity_thresh)
+        ious_dists_mask = ious_dists > self.proximity_thresh
 
         if not self.args.mot20:
             ious_dists = matching.fuse_score(ious_dists, detections)
@@ -360,31 +375,35 @@ class SMILEtrack(object):
 
             dists_iou = matching.iou_distance(strack_pool, detections)
             dists_emb = matching.embedding_distance(strack_pool, detections)
-            dists_emb = matching.fuse_motion(self.kalman_filter, dists_emb, strack_pool, detections)
+            dists_emb = matching.fuse_motion(
+                self.kalman_filter, dists_emb, strack_pool, detections
+            )
 
             if dists_emb.size != 0:
                 dists = matching.gate(dists_iou, dists_emb)
             else:
                 dists = dists_iou
 
-#             emb_dists = matching.embedding_distance(strack_pool, detections) / 2.0
-#             raw_emb_dists = emb_dists.copy()
-#             emb_dists[emb_dists > self.appearance_thresh] = 1.0
-#             emb_dists[ious_dists_mask] = 1.0
-#             dists = np.minimum(ious_dists, emb_dists)
+        #             emb_dists = matching.embedding_distance(strack_pool, detections) / 2.0
+        #             raw_emb_dists = emb_dists.copy()
+        #             emb_dists[emb_dists > self.appearance_thresh] = 1.0
+        #             emb_dists[ious_dists_mask] = 1.0
+        #             dists = np.minimum(ious_dists, emb_dists)
 
-            # Popular ReID method (JDE / FairMOT)
-            # raw_emb_dists = matching.embedding_distance(strack_pool, detections)
-            # dists = matching.fuse_motion(self.kalman_filter, raw_emb_dists, strack_pool, detections)
-            # emb_dists = dists
+        # Popular ReID method (JDE / FairMOT)
+        # raw_emb_dists = matching.embedding_distance(strack_pool, detections)
+        # dists = matching.fuse_motion(self.kalman_filter, raw_emb_dists, strack_pool, detections)
+        # emb_dists = dists
 
-            # IoU making ReID
-            # dists = matching.embedding_distance(strack_pool, detections)
-            # dists[ious_dists_mask] = 1.0
+        # IoU making ReID
+        # dists = matching.embedding_distance(strack_pool, detections)
+        # dists[ious_dists_mask] = 1.0
         else:
             dists = ious_dists
 
-        matches, u_track, u_detection = matching.linear_assignment(dists, thresh=self.args.match_thresh)
+        matches, u_track, u_detection = matching.linear_assignment(
+            dists, thresh=self.args.match_thresh
+        )
 
         for itracked, idet in matches:
             track = strack_pool[itracked]
@@ -396,7 +415,7 @@ class SMILEtrack(object):
                 track.re_activate(det, self.frame_id, new_id=False)
                 refind_stracks.append(track)
 
-        ''' Step 3: Second association, with low score detection boxes'''
+        """ Step 3: Second association, with low score detection boxes"""
         if len(scores):
             inds_high = scores < self.args.track_high_thresh
             inds_low = scores > self.args.track_low_thresh
@@ -411,15 +430,23 @@ class SMILEtrack(object):
 
         # association the untrack to the low score detections
         if len(dets_second) > 0:
-            '''Detections'''
-            detections_second = [STrack(STrack.tlbr_to_tlwh(tlbr), s, c) for
-                                 (tlbr, s, c) in zip(dets_second, scores_second, classes_second)]
+            """Detections"""
+            detections_second = [
+                STrack(STrack.tlbr_to_tlwh(tlbr), s, c)
+                for (tlbr, s, c) in zip(dets_second, scores_second, classes_second)
+            ]
         else:
             detections_second = []
 
-        r_tracked_stracks = [strack_pool[i] for i in u_track if strack_pool[i].state == TrackState.Tracked]
+        r_tracked_stracks = [
+            strack_pool[i]
+            for i in u_track
+            if strack_pool[i].state == TrackState.Tracked
+        ]
         dists = matching.iou_distance(r_tracked_stracks, detections_second)
-        matches, u_track, u_detection_second = matching.linear_assignment(dists, thresh=0.5)
+        matches, u_track, u_detection_second = matching.linear_assignment(
+            dists, thresh=0.5
+        )
         for itracked, idet in matches:
             track = r_tracked_stracks[itracked]
             det = detections_second[idet]
@@ -436,12 +463,14 @@ class SMILEtrack(object):
                 track.mark_lost()
                 lost_stracks.append(track)
 
-        '''Deal with unconfirmed tracks, usually tracks with only one beginning frame'''
+        """Deal with unconfirmed tracks, usually tracks with only one beginning frame"""
         detections = [detections[i] for i in u_detection]
         dists = matching.iou_distance(unconfirmed, detections)
         if not self.args.mot20:
             dists = matching.fuse_score(dists, detections)
-        matches, u_unconfirmed, u_detection = matching.linear_assignment(dists, thresh=0.7)
+        matches, u_unconfirmed, u_detection = matching.linear_assignment(
+            dists, thresh=0.7
+        )
         for itracked, idet in matches:
             unconfirmed[itracked].update(detections[idet], self.frame_id)
             activated_starcks.append(unconfirmed[itracked])
@@ -466,18 +495,21 @@ class SMILEtrack(object):
                 removed_stracks.append(track)
 
         """ Merge """
-        self.tracked_stracks = [t for t in self.tracked_stracks if t.state == TrackState.Tracked]
+        self.tracked_stracks = [
+            t for t in self.tracked_stracks if t.state == TrackState.Tracked
+        ]
         self.tracked_stracks = joint_stracks(self.tracked_stracks, activated_starcks)
         self.tracked_stracks = joint_stracks(self.tracked_stracks, refind_stracks)
         self.lost_stracks = sub_stracks(self.lost_stracks, self.tracked_stracks)
         self.lost_stracks.extend(lost_stracks)
         self.lost_stracks = sub_stracks(self.lost_stracks, self.removed_stracks)
         self.removed_stracks.extend(removed_stracks)
-        self.tracked_stracks, self.lost_stracks = remove_duplicate_stracks(self.tracked_stracks, self.lost_stracks)
+        self.tracked_stracks, self.lost_stracks = remove_duplicate_stracks(
+            self.tracked_stracks, self.lost_stracks
+        )
 
         # output_stracks = [track for track in self.tracked_stracks if track.is_activated]
         output_stracks = [track for track in self.tracked_stracks]
-
 
         return output_stracks
 
