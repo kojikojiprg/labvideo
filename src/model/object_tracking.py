@@ -1,5 +1,4 @@
 import os
-import sys
 import urllib.request
 from typing import List
 
@@ -7,12 +6,9 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
-sys.path.append("src")
-from utils import yaml_handler
+from src.utils import yaml_handler
 
-sys.path.append("submodules/SMILEtrack/SMILEtrack_Official")
-np.float = float  # SMILEtrack uses np.float (numpy>=1.24 removed np.float)
-from tracker.mc_SMILEtrack import SMILEtrack
+from .ext.SMILEtrack.mc_SMILEtrack import SMILEtrack
 
 
 class ObjectTracking:
@@ -39,25 +35,19 @@ class ObjectTracking:
             urllib.request.urlretrieve(url, path)
 
     def predict(self, img: np.array):
-        bboxes = self._yolo.predict(img, verbose=False)[0].boxes.data.cpu().numpy()
-        bboxes = bboxes[bboxes[:, 4] > self._cfg.yolo.th_conf]
-        bboxes = bboxes[nms(bboxes, self._cfg.yolo.th_iou)]
-        areas = (bboxes[:, 2] - bboxes[:, 0]) * (bboxes[:, 3] - bboxes[:, 1])
-        bboxes = bboxes[
-            (self._cfg.yolo.min_area < areas) & (areas < self._cfg.yolo.max_area)
-        ]
+        bboxs = self._yolo.predict(img, verbose=False)[0].boxes.data.cpu().numpy()
+        bboxs = bboxs[bboxs[:, 4] > self._cfg.yolo.th_conf]
+        bboxs = bboxs[nms(bboxs, self._cfg.yolo.th_iou)]
 
         try:
-            targets = self._tracker.update(bboxes, img)
+            targets = self._tracker.update(bboxs, img)
         except cv2.error:
-            print(bboxes)
+            print(bboxs)
             cv2.imwrite("error.jpg", img)
 
         results = []
         for t in targets:
             x, y, w, h = t.tlwh
-
-            # save results
             results.append(
                 [
                     x,
