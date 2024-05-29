@@ -3,6 +3,8 @@ annotation/
 out/
 models/
 notebooks/
+labels/
+images/
 *.json
 *.tsv
 *.xlsx
