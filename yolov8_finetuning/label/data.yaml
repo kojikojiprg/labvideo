@@ -1,0 +1,28 @@
+path: ./yolov8_finetuning
+train: images/train
+test: images/test
+names:
+  0: A11
+  1: A12
+  2: A13
+  3: A21
+  4: A22
+  5: A23
+  6: A24
+  7: A25
+  8: A32
+  9: A34
+  10: A35
+  11: A36
+  12: A41
+  13: A42
+  14: A43
+  15: A51
+  16: B21
+  17: B24
+  18: B32
+  19: B36
+  20: B41
+  21: B42
+  22: C31
+  23: C42
