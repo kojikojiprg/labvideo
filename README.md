@@ -35,3 +35,4 @@ object_tracking.py の結果に対して、LLaVAを用いて物体にラベル�
 
 ### count_paint_within_bbox.py
 YOLOv8の予測結果の中に、Paintの中心座標がどれくらいの入っているかを計算する
+```out/count_patin_within_bbox.tsv``` に結果を保存
