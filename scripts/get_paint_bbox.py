@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 
 import cv2
 import numpy as np
@@ -14,6 +15,8 @@ ann_json = json_handler.load(ann_json_path)
 # info_json = json_handler.load(info_json_path)
 
 paint_imgs_dir = "annotation/images/"
+if os.path.exists(paint_imgs_dir):
+    shutil.rmtree(paint_imgs_dir)
 os.makedirs(paint_imgs_dir, exist_ok=True)
 paint_bbox_json = {}
 error_paint_videos = [("video_id", "aid", "error")]
@@ -45,12 +48,16 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
         last_frame_gray = cv2.cvtColor(last_frame, cv2.COLOR_RGB2GRAY)
 
         # 余白部分を255にする
-        last_frame_gray[first_frame_gray < 10] = 255
+        last_frame_gray[first_frame_gray < 20] = 255
 
         # binary
         _, last_frame_bin = cv2.threshold(
             last_frame_gray, 10, 255, cv2.THRESH_BINARY_INV
         )
+
+        # モルフォロジー膨張
+        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (5, 5))
+        last_frame_bin = cv2.dilate(last_frame_bin, kernel)
 
         # find contours
         contours, hierarchy = cv2.findContours(
