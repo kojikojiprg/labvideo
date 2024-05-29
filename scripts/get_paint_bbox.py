@@ -1,3 +1,4 @@
+import os
 import sys
 
 import cv2
@@ -12,6 +13,8 @@ ann_json = json_handler.load(ann_json_path)
 # info_json_path = "annotation/info.json"
 # info_json = json_handler.load(info_json_path)
 
+paint_imgs_dir = "annotation/images/"
+os.makedirs(paint_imgs_dir, exist_ok=True)
 paint_bbox_json = {}
 error_paint_videos = [("video_id", "aid", "error")]
 for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
@@ -65,7 +68,7 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
             continue
 
         # detect bboxs
-        for contour in contours:
+        for i, contour in enumerate(contours):
             x, y, w, h = cv2.boundingRect(contour)
             if w < 20 or h < 20:
                 continue  # skip thin objects
@@ -76,6 +79,9 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
                     "center": (x + w / 2, y + h / 2),
                 }
             )
+            img = first_frame[y : y + h, x : x + w]
+            img_path = os.path.join(paint_imgs_dir, f"{video_id}_{aid}_{i + 1}.jpg")
+            cv2.imwrite(img_path, img)
 
 # save data
 json_handler.dump("annotation/paint_bbox.json", paint_bbox_json)

@@ -19,8 +19,9 @@ YOLOとSMILEtrackを使用して物体認識とトラッキングを行う
 
 ### get_paint_bbox.py
 ```annotation/video/``` にある動画の黒丸部分を切り出す
-- ```paint_bbox.json``` に切り出した結果を保存
-- ```paint_error.tsv``` に切り出せなかった結果を保存
+- ```annotation/paint_bbox.json``` に切り出した結果の座標を保存
+- ```annotation/paint_error.tsv``` に切り出せなかった結果を保存
+- ```annotation/images/``` に切り出した画像を保存
 
 ### collect_annotation.py
 ```annotation/annotation.json``` と ```annotation/paint_bbox.json```からアノテーションを時系列に並べる  
