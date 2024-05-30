@@ -6,11 +6,13 @@ notebooks/
 labels/
 images/
 runs/
+yolov8_finetuning/
 *.json
 *.tsv
 *.xlsx
 *.out
 *.mp4
+*.pt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
