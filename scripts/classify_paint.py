@@ -4,8 +4,12 @@ import shutil
 import sys
 from glob import glob
 
+import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
+from tqdm import tqdm
 from ultralytics import YOLO
+from sklearn.metrics import accuracy_score
 
 sys.path.append(".")
 from src.utils import json_handler
@@ -16,12 +20,16 @@ info_json = json_handler.load("annotation/info.json")
 
 
 parser = argparse.ArgumentParser()
+parser.add_argument("data_type", type=str, help="'label' or 'label_type'")
 parser.add_argument(
     "-cd", "--create_dataset", required=False, action="store_true", default=False
 )
+parser.add_argument(
+    "-tr", "--train", required=False, action="store_true", default=False
+)
 args = parser.parse_args()
 
-
+data_type = args.data_type
 out_dir = "./datasets/classify_paint/"
 
 
@@ -85,12 +93,50 @@ if args.create_dataset:
     train_idxs = random_idxs[:train_length]
     test_idxs = random_idxs[train_length:]
 
-    create_dataset(ann_data, train_idxs, out_dir, "label", "train")
-    create_dataset(ann_data, test_idxs, out_dir, "label", "test")
-    create_dataset(ann_data, train_idxs, out_dir, "label_type", "train")
-    create_dataset(ann_data, test_idxs, out_dir, "label_type", "test")
+    create_dataset(ann_data, train_idxs, out_dir, data_type, "train")
+    create_dataset(ann_data, test_idxs, out_dir, data_type, "test")
 
 
-# train YOLO
-model = YOLO("yolov8n-cls.pt")
-result = model.train(data="classify_paint/label_type/", epochs=100, task="classify")
+def model_pred(model, img_paths, stage, yolo_result_dir):
+    results = []
+    for path in tqdm(img_paths):
+        label = os.path.basename(os.path.dirname(path))
+        pred = model(path)
+        pred_label_id = pred[0].probs.top1
+        names = pred[0].names
+        pred_label = names[pred_label_id]
+        results.append([label, pred_label])
+
+    results = np.array(results)
+    cm = confusion_matrix(results.T[0], results.T[1], normalize="true")
+    cmd = ConfusionMatrixDisplay(cm)
+    cmd.plot(xticks_rotation="vertical", include_values=True, cmap="Blues")
+    plt.xticks(fontsize=6)
+    plt.yticks(fontsize=6)
+    plt.xlabel("next state")
+    plt.ylabel("pre state")
+    plt.savefig(f"{yolo_result_dir}/cm_{stage}.jpg", bbox_inches="tight")
+    plt.close()
+
+    print(stage, accuracy_score(results.T[0], results.T[1]))
+    return results
+
+
+if args.train:
+    # train YOLO
+    model = YOLO("yolov8n-cls.pt")
+    model.train(data=f"classify_paint/{data_type}/", epochs=100, task="classify")
+else:
+    yolo_result_dir = f"runs/classify/{data_type}"
+    weights_path = os.path.join(yolo_result_dir, "weights", "last.pt")
+    model = YOLO(weights_path)
+
+    train_paths = sorted(
+        glob(os.path.join("datasets/classify_paint", data_type, "train", "**", "*.jpg"))
+    )
+    test_paths = sorted(
+        glob(os.path.join("datasets/classify_paint", data_type, "test", "**", "*.jpg"))
+    )
+
+    model_pred(model, train_paths, "train", yolo_result_dir)
+    model_pred(model, test_paths, "test", yolo_result_dir)
