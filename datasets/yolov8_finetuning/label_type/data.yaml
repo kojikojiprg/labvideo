@@ -1,8 +1,0 @@
-path: yolov8_finetuning/label_type
-train: images/train
-val: images/train
-test: images/test
-names:
-  0: A
-  1: B
-  2: C

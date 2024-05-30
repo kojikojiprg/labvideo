@@ -6,7 +6,7 @@ notebooks/
 labels/
 images/
 runs/
-yolov8_finetuning/
+datasets/
 *.json
 *.tsv
 *.xlsx
