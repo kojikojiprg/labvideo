@@ -5,6 +5,7 @@ models/
 notebooks/
 labels/
 images/
+runs/
 *.json
 *.tsv
 *.xlsx
