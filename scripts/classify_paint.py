@@ -6,10 +6,9 @@ from glob import glob
 
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
+from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_matrix
 from tqdm import tqdm
 from ultralytics import YOLO
-from sklearn.metrics import accuracy_score
 
 sys.path.append(".")
 from src.utils import json_handler
@@ -99,6 +98,7 @@ if args.create_dataset:
 
 def model_pred(model, img_paths, stage, yolo_result_dir):
     results = []
+    missed_img_paths = []
     for path in tqdm(img_paths):
         label = os.path.basename(os.path.dirname(path))
         pred = model(path)
@@ -106,6 +106,8 @@ def model_pred(model, img_paths, stage, yolo_result_dir):
         names = pred[0].names
         pred_label = names[pred_label_id]
         results.append([label, pred_label])
+        if label != pred_label:
+            missed_img_paths.append([path, label, pred_label])
 
     results = np.array(results)
     cm = confusion_matrix(results.T[0], results.T[1], normalize="true")
@@ -119,7 +121,7 @@ def model_pred(model, img_paths, stage, yolo_result_dir):
     plt.close()
 
     print(stage, accuracy_score(results.T[0], results.T[1]))
-    return results
+    return results, missed_img_paths
 
 
 if args.train:
@@ -138,5 +140,18 @@ else:
         glob(os.path.join("datasets/classify_paint", data_type, "test", "**", "*.jpg"))
     )
 
-    model_pred(model, train_paths, "train", yolo_result_dir)
-    model_pred(model, test_paths, "test", yolo_result_dir)
+    results_train, missed_img_path_train = model_pred(
+        model, train_paths, "train", yolo_result_dir
+    )
+    results_test, missed_img_path_test = model_pred(
+        model, test_paths, "test", yolo_result_dir
+    )
+
+    missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
+    shutil.rmtree(missed_imgs_dir)
+    os.makedirs(missed_imgs_dir, exist_ok=True)
+    for path, label, pred_label in missed_img_path_test:
+        img_name = os.path.basename(path)
+        img_name = f"true_{label}-pred_{pred_label}-" + img_name
+        move_path = os.path.join(missed_imgs_dir, img_name)
+        shutil.copyfile(path, move_path)
