@@ -1,2 +1,1 @@
-"What is this device which is used in a laboratory bench. Please select one from the following list and respond with only one phrase: \
-'50 mL centrifuge tube with green lid', '15mL centrifuge tube with green lid', 'culture dish', 'pasteur pipette', 'blue 5ml serological pipette', 'orange 10ml serological pipette', 'green 10ml serological pipette', 'pipette filler', 'ventilation door',  and 'other'"
+"What is this device which is used in a laboratory bench. Please select one from the following list and respond with only one phrase: <categories>
