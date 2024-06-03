@@ -152,6 +152,6 @@ else:
     os.makedirs(missed_imgs_dir, exist_ok=True)
     for path, label, pred_label in missed_img_path_test:
         img_name = os.path.basename(path)
-        img_name = f"true_{label}-pred_{pred_label}-" + img_name
+        img_name = f"true-{label}_pred-{pred_label}_" + img_name
         move_path = os.path.join(missed_imgs_dir, img_name)
         shutil.copyfile(path, move_path)
