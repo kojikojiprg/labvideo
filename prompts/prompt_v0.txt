@@ -1,1 +1,1 @@
-"What is this device which is used in a laboratory bench. Please select one from the following list and respond with only one phrase: <categories>.
+What is this device which is used in a laboratory bench. Please select one from the following list and respond with only one phrase: <categories>.
