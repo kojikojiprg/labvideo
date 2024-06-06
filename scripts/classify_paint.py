@@ -115,8 +115,6 @@ def model_pred(model, img_paths, stage, yolo_result_dir):
     cmd.plot(xticks_rotation="vertical", include_values=True, cmap="Blues")
     plt.xticks(fontsize=6)
     plt.yticks(fontsize=6)
-    plt.xlabel("next state")
-    plt.ylabel("pre state")
     plt.savefig(f"{yolo_result_dir}/cm_{stage}.jpg", bbox_inches="tight")
     plt.close()
 
