@@ -94,16 +94,13 @@ def pred_llava(
     yolo_preds,
     inp,
     n_imgs,
-    model_path,
-    model_base=None,
-    load_8bit=False,
-    load_4bit=False,
+    tokenizer,
+    model_llava,
+    image_processor,
+    conv_mode,
     temperature=0.2,
     max_new_tokens=512,
 ):
-    tokenizer, model_llava, image_processor, context_len, conv_mode = get_llava(
-        model_path, model_base, load_8bit, load_4bit
-    )
 
     llava_preds = []
     track_ids = np.unique(yolo_preds[:, 6]).astype(int)
@@ -132,7 +129,7 @@ def pred_llava(
                 imgs_tensor.append(img)
 
             conv, input_ids, streamer, stopping_criteria = create_input_ids_streamer(
-                inp, imgs, conv_mode
+                inp, imgs, conv_mode, tokenizer
             )
 
             output_ids = model_llava.generate(
@@ -189,6 +186,16 @@ if __name__ == "__main__":
     categories_v = args.categories_version
     n_imgs = args.n_images
 
+    # create prompt
+    prompt_path = f"prompts/prompt_v{prompt_v}.txt"
+    categories_path = f"prompts/categories_v{categories_v}.txt"
+    inp = create_prompt(prompt_path, categories_path)
+
+    # load llava
+    tokenizer, model_llava, image_processor, context_len, conv_mode = get_llava(
+        args.model_path, args.model_base, args.load_8bit, args.load_4bit
+    )
+
     if video_name is None:
         info_json = json_handler.load("annotation/info.json")
         video_id_to_name = {
@@ -206,12 +213,8 @@ if __name__ == "__main__":
     else:
         video_names = [video_name]
 
-    # create prompt
-    prompt_path = f"prompts/prompt_v{prompt_v}.txt"
-    categories_path = f"prompts/categories_v{categories_v}.txt"
-    inp = create_prompt(prompt_path, categories_path)
-
-    for video_name in video_names:
+    for video_name in tqdm(video_names, ncols=100):
+        # load video and yolo preds
         cap = video.Capture(f"video/{video_name}.mp4")
         frame_count = cap.frame_count
         frame_size = cap.size
@@ -225,10 +228,10 @@ if __name__ == "__main__":
             yolo_preds,
             inp,
             n_imgs,
-            args.model_path,
-            args.model_base,
-            args.load_8bit,
-            args.load_4bit,
+            tokenizer,
+            model_llava,
+            image_processor,
+            conv_mode,
             args.temperature,
             args.max_new_tokens,
         )
