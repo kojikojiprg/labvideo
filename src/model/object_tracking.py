@@ -59,6 +59,7 @@ class ObjectTracking:
                     x + w,
                     y + h,
                     t.score,
+                    t.cls,
                     t.track_id,
                     t.start_frame - 1,
                     t.tracklet_len,

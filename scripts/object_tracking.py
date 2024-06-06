@@ -57,7 +57,7 @@ for video_path in tqdm(video_paths, ncols=100):
             wtr.write(frame)
 
     # save tsv
-    header = "n_frame\tx1\ty1\tx2\ty2\tconf\ttid\tstart_frame\ttracklet_len"
+    header = "n_frame\tx1\ty1\tx2\ty2\tconf\tcls\ttid\tstart_frame\ttracklet_len"
     fmt = ("%d", "%f", "%f", "%f", "%f", "%f", "%d", "%d", "%d")
     det_tsv_path = os.path.join(out_dir, f"{video_name}_det.tsv")
     np.savetxt(det_tsv_path, det_rslt, fmt, "\t", header=header, comments="")
