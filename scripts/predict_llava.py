@@ -208,7 +208,7 @@ if __name__ == "__main__":
         )
         if data[0] != "" and data[1] != ""
     }
-    video_names = [video_id_to_name[vid] for vid in info_json.keys()]
+    video_names = sorted([video_id_to_name[vid] for vid in info_json.keys()])
     if video_name is not None:
         assert video_name in video_names
         video_names = [video_name]
