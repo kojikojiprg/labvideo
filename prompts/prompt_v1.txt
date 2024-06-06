@@ -1,0 +1,1 @@
+What is the moset likely laboratory equipment that appears in all the given images? Please select one from the following list and respond with only one phrase: <categories>.

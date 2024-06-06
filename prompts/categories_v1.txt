@@ -7,5 +7,4 @@ orange 10ml serological pipette
 green 10ml serological pipette
 pipette filler
 ventilation door
-hand
 other
