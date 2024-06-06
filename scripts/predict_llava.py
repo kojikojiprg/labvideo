@@ -1,16 +1,11 @@
-import os
+import argparse
 import sys
 import warnings
 
 import cv2
 import numpy as np
 import torch
-from llava.constants import (
-    DEFAULT_IM_END_TOKEN,
-    DEFAULT_IM_START_TOKEN,
-    DEFAULT_IMAGE_TOKEN,
-    IMAGE_TOKEN_INDEX,
-)
+from llava.constants import DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
 from llava.conversation import SeparatorStyle, conv_templates
 from llava.mm_utils import (
     KeywordsStoppingCriteria,
@@ -24,40 +19,28 @@ from tqdm import tqdm
 from transformers import TextStreamer
 
 sys.path.append(".")
-from src.utils import video
+from src.utils import json_handler, video
 
 warnings.filterwarnings("ignore")
 
-# load yolo data
-video_name = "Failures11"
-# video_name = "継代12"
-yolo_preds = np.loadtxt(
-    f"out/{video_name}/{video_name}_det.tsv", skiprows=1, dtype=float
-)
 
-cap = video.Capture(f"video/{video_name}.mp4")
-frame_count = cap.frame_count
-frame_size = cap.size
+def create_prompt(prompt_path, categories_path):
+    with open(prompt_path, "r") as f:
+        prompt = f.read()
 
+    with open(categories_path, "r") as f:
+        categories_lst = f.readlines()
+    categories_str = "'"
+    for i, c in enumerate(categories_lst):
+        if i < len(categories_lst) - 1:
+            categories_str += c.replace("\n", "','")
+        else:
+            categories_str += c.replace("\n", "'")
 
-# params
-temperature = 0.2
-max_new_tokens = 512
-
-# llava params
-model_path = "liuhaotian/llava-v1.5-13b"
-model_base = None
-load_8bit = False
-load_4bit = False
-
-# load prompt
-prompt_v = 0
-prompt_path = f"prompts/prompt_v{prompt_v}.txt"
-with open(prompt_path, "r") as f:
-    inp = f.read()
+    prompt = prompt.replace("<categories>", categories_str)
+    return prompt
 
 
-# load llava
 def get_llava(model_path, model_base, load_8bit, load_4bit):
     # Model
     disable_torch_init()
@@ -81,105 +64,182 @@ def get_llava(model_path, model_base, load_8bit, load_4bit):
     return tokenizer, model, image_processor, context_len, conv_mode
 
 
-tokenizer, model_llava, image_processor, context_len, conv_mode = get_llava(
-    model_path, model_base, load_8bit, load_4bit
-)
+def create_input_ids_streamer(inp, imgs, conv_mode, tokenizer):
+    conv = conv_templates[conv_mode].copy()
+    for _ in range(len(imgs)):
+        inp = DEFAULT_IMAGE_TOKEN + inp
 
-# create prompt
-conv = conv_templates[conv_mode].copy()
-inp = DEFAULT_IMAGE_TOKEN + "\n" + inp
+    conv.append_message(conv.roles[0], inp)
+    conv.append_message(conv.roles[1], None)
 
-conv.append_message(conv.roles[0], inp)
-conv.append_message(conv.roles[1], None)
+    prompt = conv.get_prompt()
 
-prompt = conv.get_prompt()
+    # create streamer
+    input_ids = (
+        tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt")
+        .unsqueeze(0)
+        .cuda()
+    )
+    stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
+    keywords = [stop_str]
+    stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
+    streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
 
-# create streamer
-input_ids = (
-    tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt")
-    .unsqueeze(0)
-    .cuda()
-)
-stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
-keywords = [stop_str]
-stopping_criteria = KeywordsStoppingCriteria(keywords, tokenizer, input_ids)
-streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
+    return conv, input_ids, streamer, stopping_criteria
 
-# pred llava
-n_imgs = 10
 
-llava_preds = []
-track_ids = np.unique(yolo_preds[:, 6]).astype(int)
-with torch.inference_mode():
-    for tid in tqdm(track_ids, ncols=100):
-        preds_tmp = np.array([pred for pred in yolo_preds if pred[6] == tid])
-        if len(preds_tmp) > n_imgs:
-            pred_idxs = np.argpartition(-preds_tmp[:, 5], n_imgs)[:n_imgs]
-            preds_tmp = preds_tmp[pred_idxs]
+def pred_llava(
+    video_name,
+    cap,
+    yolo_preds,
+    inp,
+    n_imgs,
+    model_path,
+    model_base=None,
+    load_8bit=False,
+    load_4bit=False,
+    temperature=0.2,
+    max_new_tokens=512,
+):
+    tokenizer, model_llava, image_processor, context_len, conv_mode = get_llava(
+        model_path, model_base, load_8bit, load_4bit
+    )
 
-        img_dir = f"out/{video_name}/images"
-        imgs = []
-        for pred in preds_tmp:
-            x1, y1, x2, y2 = pred[1:5].astype(int)
-            ret, frame = cap.read(pred[0])
-            if not ret:
-                ValueError
-            img = frame[y1:y2, x1:x2]
-            imgs.append(img)
-        cv2.imwrite(f"{img_dir}/tid{tid}.jpg", cv2.cvtColor(imgs[0], cv2.COLOR_RGB2BGR))
+    llava_preds = []
+    track_ids = np.unique(yolo_preds[:, 6]).astype(int)
+    with torch.inference_mode():
+        for tid in tqdm(track_ids, ncols=100):
+            preds_tmp = np.array([pred for pred in yolo_preds if pred[6] == tid])
+            if len(preds_tmp) > n_imgs:
+                pred_idxs = np.argpartition(-preds_tmp[:, 5], n_imgs)[:n_imgs]
+                preds_tmp = preds_tmp[pred_idxs]
 
-        imgs_tensor = process_images(imgs, image_processor, {})
-        imgs_tensor = imgs_tensor.to(model_llava.device, dtype=torch.float16)
+            img_dir = f"out/{video_name}/images"
+            imgs = []
+            for pred in preds_tmp:
+                x1, y1, x2, y2 = pred[1:5].astype(int)
+                ret, frame = cap.read(pred[0])
+                if not ret:
+                    ValueError
+                img = frame[y1:y2, x1:x2]
+                imgs.append(img)
+            cv2.imwrite(f"{img_dir}/tid{tid}.jpg", imgs[0])
 
-        output_ids = model_llava.generate(
-            input_ids,
-            images=imgs_tensor,
-            do_sample=True,
-            temperature=temperature,
-            max_new_tokens=max_new_tokens,
-            streamer=streamer,
-            use_cache=True,
-            stopping_criteria=[stopping_criteria],
+            imgs_tensor = []
+            for img in imgs:
+                img = process_images(img, image_processor, {})
+                img = img.to(model_llava.device, dtype=torch.float16)
+                imgs_tensor.append(img)
+
+            conv, input_ids, streamer, stopping_criteria = create_input_ids_streamer(
+                inp, imgs, conv_mode
+            )
+
+            output_ids = model_llava.generate(
+                input_ids,
+                images=imgs_tensor,
+                do_sample=True,
+                temperature=temperature,
+                max_new_tokens=max_new_tokens,
+                streamer=streamer,
+                use_cache=True,
+                stopping_criteria=[stopping_criteria],
+            )
+
+            outputs = (
+                tokenizer.decode(output_ids[0]).strip().replace("</s>", "")
+            ).replace("<s>", "")
+            conv.messages[-1][-1] = outputs
+
+            llava_preds.append([tid, outputs])
+    return llava_preds
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-vn", "--video_name", type=str, required=False, default=None)
+    parser.add_argument("-pv", "--prompt_version", type=int, required=False, default=0)
+    parser.add_argument(
+        "-cv", "--categories_version", type=int, required=False, default=0
+    )
+    parser.add_argument("-ni", "--n_images", type=int, required=False, default=10)
+
+    parser.add_argument(
+        "-mp",
+        "--model_path",
+        type=str,
+        required=False,
+        default="liuhaotian/llava-v1.5-13b",
+    )
+    parser.add_argument("-mb", "--model_base", type=str, required=False, default=None)
+    parser.add_argument(
+        "-l8", "--load_8bit", required=False, default=False, action="store_true"
+    )
+    parser.add_argument(
+        "-l4", "--load_4bit", required=False, default=False, action="store_true"
+    )
+    parser.add_argument("-tm", "--temperature", type=float, required=False, default=0.2)
+    parser.add_argument(
+        "-mnt", "--max_new_tokens", type=int, required=False, default=512
+    )
+    args = parser.parse_args()
+
+    video_name = args.video_name
+    prompt_v = args.prompt_version
+    categories_v = args.categories_version
+    n_imgs = args.n_images
+
+    if video_name is None:
+        info_json = json_handler.load("annotation/info.json")
+        video_id_to_name = {
+            data[0]: data[1].split(".")[0]
+            for data in np.loadtxt(
+                "annotation/annotation.tsv",
+                str,
+                delimiter="\t",
+                skiprows=1,
+                usecols=[1, 2],
+            )
+            if data[0] != "" and data[1] != ""
+        }
+        video_names = [video_id_to_name[vid] for vid in info_json.keys()]
+    else:
+        video_names = [video_name]
+
+    # create prompt
+    prompt_path = f"prompts/prompt_v{prompt_v}.txt"
+    categories_path = f"prompts/categories_v{categories_v}.txt"
+    inp = create_prompt(prompt_path, categories_path)
+
+    for video_name in video_names:
+        cap = video.Capture(f"video/{video_name}.mp4")
+        frame_count = cap.frame_count
+        frame_size = cap.size
+        yolo_preds = np.loadtxt(
+            f"out/{video_name}/{video_name}_det.tsv", skiprows=1, dtype=float
         )
 
-        outputs = (tokenizer.decode(output_ids[0]).strip().replace("</s>", "")).replace(
-            "<s>", ""
+        llava_preds = pred_llava(
+            video_name,
+            cap,
+            yolo_preds,
+            inp,
+            n_imgs,
+            args.model_path,
+            args.model_base,
+            args.load_8bit,
+            args.load_4bit,
+            args.temperature,
+            args.max_new_tokens,
         )
-        conv.messages[-1][-1] = outputs
 
-        # print("\nprompt")
-        # print(prompt)
-        # print("\nn_imgs", len(imgs))
-        # print("\noutputs_ids")
-        # print(output_ids.cpu().numpy())
-        # print("\noutputs")
-        # print(outputs)
-
-        # if "," in outputs:
-        #     label, conf = outputs.split(",")
-        #     label = label.lower()
-        #     conf = float(conf.replace(" ", ""))
-        # elif "(" in outputs:
-        #     label, conf = outputs.split("(")
-        #     label = label.lower()
-        #     conf = float(conf.replace(")", ""))
-        # elif "with" in outputs:
-        #     label, conf = outputs.split("with")
-        #     lavel = label.replace("'", "")
-        #     conf = float(conf[-5:-1])
-        # else:
-        #     ValueError
-        # tqdm.write(f"{tid}, {label}, {conf}")
-        # llava_preds.append([tid, label, conf])
-        llava_preds.append([tid, outputs])
-
-# cols = "tid\tlabel\tconf"
-cols = "tid\tlabel"
-np.savetxt(
-    f"out/{video_name}/{video_name}_llava.tsv",
-    llava_preds,
-    fmt="%s",
-    delimiter="\t",
-    header=cols,
-    comments="",
-)
+        # cols = "tid\tlabel\tconf"
+        cols = "tid\tlabel"
+        np.savetxt(
+            f"out/{video_name}/{video_name}_llava_p{prompt_v}_c{categories_v}.tsv",
+            llava_preds,
+            fmt="%s",
+            delimiter="\t",
+            header=cols,
+            comments="",
+        )
