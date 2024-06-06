@@ -196,21 +196,21 @@ if __name__ == "__main__":
         args.model_path, args.model_base, args.load_8bit, args.load_4bit
     )
 
-    if video_name is None:
-        info_json = json_handler.load("annotation/info.json")
-        video_id_to_name = {
-            data[0]: data[1].split(".")[0]
-            for data in np.loadtxt(
-                "annotation/annotation.tsv",
-                str,
-                delimiter="\t",
-                skiprows=1,
-                usecols=[1, 2],
-            )
-            if data[0] != "" and data[1] != ""
-        }
-        video_names = [video_id_to_name[vid] for vid in info_json.keys()]
-    else:
+    info_json = json_handler.load("annotation/info.json")
+    video_id_to_name = {
+        data[0]: data[1].split(".")[0]
+        for data in np.loadtxt(
+            "annotation/annotation.tsv",
+            str,
+            delimiter="\t",
+            skiprows=1,
+            usecols=[1, 2],
+        )
+        if data[0] != "" and data[1] != ""
+    }
+    video_names = [video_id_to_name[vid] for vid in info_json.keys()]
+    if video_name is not None:
+        assert video_name in video_names
         video_names = [video_name]
 
     for video_name in tqdm(video_names, ncols=100):
