@@ -111,15 +111,26 @@ def model_pred(model, img_paths, stage, yolo_result_dir):
 
     results = np.array(results)
     cm = confusion_matrix(results.T[0], results.T[1], normalize="true")
+    path = f"{yolo_result_dir}/cm_{stage}_recall.jpg"
+    cm_plot(cm, path)
+    cm = confusion_matrix(results.T[0], results.T[1], normalize="pred")
+    path = f"{yolo_result_dir}/cm_{stage}_precision.jpg"
+    cm_plot(cm, path)
+    cm = confusion_matrix(results.T[0], results.T[1], normalize="all")
+    path = f"{yolo_result_dir}/cm_{stage}_f1.jpg"
+    cm_plot(cm, path)
+
+    print(stage, accuracy_score(results.T[0], results.T[1]))
+    return results, missed_img_paths
+
+
+def cm_plot(cm, path):
     cmd = ConfusionMatrixDisplay(cm)
     cmd.plot(xticks_rotation="vertical", include_values=True, cmap="Blues")
     plt.xticks(fontsize=6)
     plt.yticks(fontsize=6)
-    plt.savefig(f"{yolo_result_dir}/cm_{stage}.jpg", bbox_inches="tight")
+    plt.savefig(path, bbox_inches="tight")
     plt.close()
-
-    print(stage, accuracy_score(results.T[0], results.T[1]))
-    return results, missed_img_paths
 
 
 if args.train:
