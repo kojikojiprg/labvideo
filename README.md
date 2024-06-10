@@ -43,3 +43,14 @@ object_tracking.py の結果に対して、LLaVAを用いて物体にラベル�
 ### count_paint_within_bbox.py
 YOLOv8の予測結果の中に、Paintの中心座標がどれくらいの入っているかを計算する
 ```out/count_patin_within_bbox.tsv``` に結果を保存
+
+### classify_paint.py
+Paintで囲まれたエリアの画像を切り取り、ラベル分類を行う  
+Yolov8n-cls.pt をファインチューニングして分類した  
+positional arguments:
+- ```data_type```: 'label' or 'label_type'
+
+options:
+- ```-cd, --create_dataset```: データセットを作成する
+- ```-tr, --train```: ファインチューニングを行う
+- ```-v, --version```: テストバージョン(--train を指定したときは無効)
