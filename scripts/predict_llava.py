@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 import warnings
 
@@ -113,6 +114,7 @@ def pred_llava(
                 preds_tmp = preds_tmp[pred_idxs]
 
             img_dir = f"out/{video_name}/images"
+            os.makedirs(img_dir, exist_ok=True)
             imgs = []
             for pred in preds_tmp:
                 x1, y1, x2, y2 = pred[1:5].astype(int)
@@ -241,7 +243,7 @@ if __name__ == "__main__":
             args.max_new_tokens,
         )
 
-        cols = "tid\tmean_conf\tcls\tn_imgs\tlabel"
+        cols = "tid\tyolo_conf\tyolo_cls\tn_imgs\tlabel"
         np.savetxt(
             f"out/{video_name}/{video_name}_llava_p{prompt_v}_c{categories_v}.tsv",
             llava_preds,
