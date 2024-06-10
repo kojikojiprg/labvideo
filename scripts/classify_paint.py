@@ -6,7 +6,12 @@ from glob import glob
 
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_matrix
+import pandas as pd
+from sklearn.metrics import (
+    ConfusionMatrixDisplay,
+    classification_report,
+    confusion_matrix,
+)
 from tqdm import tqdm
 from ultralytics import YOLO
 
@@ -110,6 +115,9 @@ def model_pred(model, img_paths, stage, yolo_result_dir):
             missed_img_paths.append([path, label, pred_label])
 
     results = np.array(results)
+    cm = confusion_matrix(results.T[0], results.T[1])
+    path = f"{yolo_result_dir}/cm_{stage}_num.jpg"
+    cm_plot(cm, path)
     cm = confusion_matrix(results.T[0], results.T[1], normalize="true")
     path = f"{yolo_result_dir}/cm_{stage}_recall.jpg"
     cm_plot(cm, path)
@@ -120,7 +128,11 @@ def model_pred(model, img_paths, stage, yolo_result_dir):
     path = f"{yolo_result_dir}/cm_{stage}_f1.jpg"
     cm_plot(cm, path)
 
-    print(stage, accuracy_score(results.T[0], results.T[1]))
+    path = f"{yolo_result_dir}/cm_{stage}_report.tsv"
+    report = classification_report(
+        results.T[0], results.T[1], digits=3, output_dict=True, zero_division=0
+    )
+    pd.DataFrame.from_dict(report).T.to_csv(path, sep="\t")
     return results, missed_img_paths
 
 
