@@ -31,6 +31,7 @@ parser.add_argument(
 parser.add_argument(
     "-tr", "--train", required=False, action="store_true", default=False
 )
+parser.add_argument("-v", "--version", required=False, type=int, default=None)
 args = parser.parse_args()
 
 data_type = args.data_type
@@ -145,34 +146,51 @@ def cm_plot(cm, path):
     plt.close()
 
 
+v_num = args.version
 if args.train:
     # train YOLO
     model = YOLO("yolov8n-cls.pt")
     model.train(data=f"classify_paint/{data_type}/", epochs=100, task="classify")
-else:
+    trained_dir = "runs/classify/train"
     yolo_result_dir = f"runs/classify/{data_type}"
-    weights_path = os.path.join(yolo_result_dir, "weights", "last.pt")
-    model = YOLO(weights_path)
+    if os.path.exists(yolo_result_dir):
+        dirs = sorted(glob(yolo_result_dir + "-v*/"))
+        if len(dirs) == 0:
+            v_num = 1
+        else:
+            last_dir = dirs[-1]
+            v_num = int(os.path.dirname(last_dir).split("-")[-1].replace("v", "")) + 1
+        new_yolo_result_dir = f"runs/classify/{data_type}-v{v_num}"
+        shutil.move(trained_dir, new_yolo_result_dir)
+    else:
+        shutil.move(trained_dir, yolo_result_dir)
 
-    train_paths = sorted(
-        glob(os.path.join("datasets/classify_paint", data_type, "train", "**", "*.jpg"))
-    )
-    test_paths = sorted(
-        glob(os.path.join("datasets/classify_paint", data_type, "test", "**", "*.jpg"))
-    )
+# prediction
+yolo_result_dir = f"runs/classify/{data_type}"
+if v_num is not None:
+    yolo_result_dir += f"-v{v_num}"
+weights_path = os.path.join(yolo_result_dir, "weights", "last.pt")
+model = YOLO(weights_path)
 
-    results_train, missed_img_path_train = model_pred(
-        model, train_paths, "train", yolo_result_dir
-    )
-    results_test, missed_img_path_test = model_pred(
-        model, test_paths, "test", yolo_result_dir
-    )
+train_paths = sorted(
+    glob(os.path.join("datasets/classify_paint", data_type, "train", "**", "*.jpg"))
+)
+test_paths = sorted(
+    glob(os.path.join("datasets/classify_paint", data_type, "test", "**", "*.jpg"))
+)
 
-    missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
-    shutil.rmtree(missed_imgs_dir)
-    os.makedirs(missed_imgs_dir, exist_ok=True)
-    for path, label, pred_label in missed_img_path_test:
-        img_name = os.path.basename(path)
-        img_name = f"true-{label}_pred-{pred_label}_" + img_name
-        move_path = os.path.join(missed_imgs_dir, img_name)
-        shutil.copyfile(path, move_path)
+results_train, missed_img_path_train = model_pred(
+    model, train_paths, "train", yolo_result_dir
+)
+results_test, missed_img_path_test = model_pred(
+    model, test_paths, "test", yolo_result_dir
+)
+
+missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
+shutil.rmtree(missed_imgs_dir)
+os.makedirs(missed_imgs_dir, exist_ok=True)
+for path, label, pred_label in missed_img_path_test:
+    img_name = os.path.basename(path)
+    img_name = f"true-{label}_pred-{pred_label}_" + img_name
+    move_path = os.path.join(missed_imgs_dir, img_name)
+    shutil.copyfile(path, move_path)
