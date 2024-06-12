@@ -13,7 +13,7 @@ for dir_path in tqdm(dirs, ncols=100):
 
     ann_data = np.loadtxt(f"{dir_path}/{video_name}_ann.tsv", skiprows=1, dtype=str)
     yolo_preds = np.loadtxt(f"{dir_path}/{video_name}_det.tsv", skiprows=1, dtype=float)
-    if len(yolo_preds) == 0:
+    if len(ann_data) == 0 or len(yolo_preds) == 0:
         continue
 
     count = 0
