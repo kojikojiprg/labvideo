@@ -45,7 +45,7 @@ YOLOv8の予測結果の中に、Paintの中心座標がどれくらいの入っ
 ```out/count_patin_within_bbox.tsv``` に結果を保存
 
 ### classify_paint.py
-Paintで囲まれたエリアの画像を切り取り、ラベル分類を行う  
+Paintで囲まれたエリアの画像の分類を行う  
 Yolov8n-cls.pt をファインチューニングして分類した  
 positional arguments:
 - ```data_type```: 'label' or 'label_type'
