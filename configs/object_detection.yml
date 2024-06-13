@@ -2,7 +2,7 @@ yolo:
   weights: https://github.com/ultralytics/assets/releases/download/v8.2.0/yolov8m.pt
   th_conf: 0.05
   th_iou: 0.95
-  max_area: 40000
+  max_area: 100000
   min_area: 10
 
 tracking:
