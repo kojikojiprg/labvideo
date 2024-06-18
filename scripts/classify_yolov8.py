@@ -137,7 +137,7 @@ def extract_dataset_imgs(video_name, th_sec, th_iou):
 
 
 def create_dataset(imgs, idxs, data_root, data_type, stage):
-    for idx in tqdm(idxs):
+    for i, idx in enumerate(tqdm(idxs)):
         label, img = imgs[idx]
         if len(img.shape) != 3:
             raise ValueError(f"{img.shape}")
@@ -149,8 +149,9 @@ def create_dataset(imgs, idxs, data_root, data_type, stage):
         else:
             raise ValueError
 
-        img_path = os.path.join(data_root, data_type, stage, lbl_txt, f"{idx}.jpg")
+        img_path = os.path.join(data_root, data_type, stage, lbl_txt, f"{i:04d}.jpg")
         os.makedirs(os.path.dirname(img_path), exist_ok=True)
+
         cv2.imwrite(img_path, img)
 
 
@@ -238,6 +239,10 @@ if args.train:
     model = YOLO("yolov8n-cls.pt")
     model.train(data=f"{data_name}/{data_type}/", epochs=100, task="classify")
 
+    # get trained data dir
+    dirs = sorted(glob("runs/classify/train*/"))
+    trained_dir = dirs[-1]
+
     if os.path.exists(yolo_result_dir):
         dirs = sorted(glob(yolo_result_dir + "-v*/"))
         if len(dirs) == 0:
@@ -246,9 +251,9 @@ if args.train:
             last_dir = dirs[-1]
             v_num = int(os.path.dirname(last_dir).split("-")[-1].replace("v", "")) + 1
         yolo_result_dir = f"runs/{data_name}/{data_type}-v{v_num}"
-        shutil.move("runs/classify/train", yolo_result_dir)
+        shutil.move(trained_dir, yolo_result_dir)
     else:
-        shutil.move("runs/classify/train", yolo_result_dir)
+        shutil.move(trained_dir, yolo_result_dir)
     os.makedirs(yolo_result_dir, exist_ok=True)
 else:
     # only prediction
