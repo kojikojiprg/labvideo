@@ -123,8 +123,6 @@ def extract_dataset_imgs(video_name, th_sec, th_iou):
             label = ann[8]
             try:
                 label = label.split("(")[1].replace(")", "")  # extract within bracket
-                if "_" in label:
-                    label = label.split("_")[0]  # delete surfix
             except IndexError:
                 print("error label", video_name, label)
                 continue
@@ -143,6 +141,8 @@ def create_dataset(imgs, idxs, data_root, data_type, stage):
             raise ValueError(f"{img.shape}")
 
         if data_type == "label":
+            if "_" in label:
+                label = label.split("_")[0]  # delete surfix
             lbl_txt = label  # A11~C42
         elif data_type == "label_type":
             lbl_txt = label[0]  # only A, B, C
