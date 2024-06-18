@@ -123,6 +123,8 @@ def extract_dataset_imgs(video_name, th_sec, th_iou):
             label = ann[8]
             try:
                 label = label.split("(")[1].replace(")", "")  # extract within bracket
+                if "_" in label:
+                    label = label.split("_")[0]  # delete surfix
             except IndexError:
                 print("error label", video_name, label)
                 continue
@@ -134,18 +136,20 @@ def extract_dataset_imgs(video_name, th_sec, th_iou):
     return imgs
 
 
-def create_dataset(imgs, idxs, data_root, typ, stage):
-    for idx in idxs:
+def create_dataset(imgs, idxs, data_root, data_type, stage):
+    for idx in tqdm(idxs):
         label, img = imgs[idx]
+        if len(img.shape) != 3:
+            raise ValueError(f"{img.shape}")
 
-        if typ == "label":
+        if data_type == "label":
             lbl_txt = label  # A11~C42
-        elif typ == "label_type":
+        elif data_type == "label_type":
             lbl_txt = label[0]  # only A, B, C
         else:
             raise ValueError
 
-        img_path = os.path.join(data_root, typ, stage, lbl_txt, f"{idx}.jpg")
+        img_path = os.path.join(data_root, data_type, stage, lbl_txt, f"{idx}.jpg")
         os.makedirs(os.path.dirname(img_path), exist_ok=True)
         cv2.imwrite(img_path, img)
 
@@ -178,6 +182,9 @@ if args.create_dataset:
     train_length = int(len(imgs) * 0.7)
     train_idxs = random_idxs[:train_length]
     test_idxs = random_idxs[train_length:]
+
+    create_dataset(imgs, train_idxs, data_root, data_type, "train")
+    create_dataset(imgs, test_idxs, data_root, data_type, "test")
 
 
 def model_pred(model, img_paths, stage, yolo_result_dir):
