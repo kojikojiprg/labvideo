@@ -41,6 +41,9 @@ if __name__ == "__main__":
     th_iou = args.th_iou
     th_sec = args.th_sec
 
+    if data_type == "anomaly":
+        assert dataset_type == "yolo"
+
     image_paths = sorted(glob(os.path.join("annotation/images", "*.jpg")))
     annotation_json = json_handler.load("annotation/annotation.json")
     info_json = json_handler.load("annotation/info.json")
