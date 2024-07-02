@@ -17,6 +17,8 @@ from src.data import (
 from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
 
+VERSION = 0
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("dataset_type", type=str, help="'paint' or 'yolo'")
@@ -44,23 +46,19 @@ if __name__ == "__main__":
     if data_type == "anomaly":
         assert dataset_type == "yolo"
 
-    image_paths = sorted(glob(os.path.join("annotation/images", "*.jpg")))
-    annotation_json = json_handler.load("annotation/annotation.json")
-    info_json = json_handler.load("annotation/info.json")
-
     data_name = f"classify_{dataset_type}"
     if dataset_type == "yolo":
         data_name += f"_sec{th_sec}_iou{th_iou}"
-    data_root = f"datasets/{data_name}"
+    data_root = f"datasets/v{VERSION}/{data_name}"
     os.makedirs(data_root, exist_ok=True)
 
+    # create dataset
     if args.create_dataset:
         ann_json = json_handler.load("annotation/annotation.json")
         info_json = json_handler.load("annotation/info.json")
         if dataset_type == "paint":
             imgs = collect_paint_imgs(ann_json, info_json)
         elif dataset_type == "yolo":
-            paint_data_json = json_handler.load("annotation/paint_bbox.json")
             video_id_to_name = {
                 data[0]: data[1].split(".")[0]
                 for data in np.loadtxt(
@@ -110,16 +108,18 @@ if __name__ == "__main__":
     else:
         # only prediction
         v_num = args.version
-        yolo_result_dir = f"runs/{data_name}/{data_type}"
+        yolo_result_dir = f"runs/v{VERSION}/{data_name}/{data_type}"
         if v_num is not None:
             yolo_result_dir += f"-v{v_num}"
 
     # prediction
     train_paths = sorted(
-        glob(os.path.join(f"datasets/{data_name}", data_type, "train", "**", "*.jpg"))
+        glob(
+            os.path.join(f"datasets/v{VERSION}/{data_name}", data_type, "train", "**", "*.jpg")
+        )
     )
     test_paths = sorted(
-        glob(os.path.join(f"datasets/{data_name}", data_type, "test", "**", "*.jpg"))
+        glob(os.path.join(f"datasets/v{VERSION}/{data_name}", data_type, "test", "**", "*.jpg"))
     )
 
     results_train, missed_img_path_train = pred_classify(
