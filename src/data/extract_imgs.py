@@ -46,7 +46,7 @@ def collect_paint_imgs(ann_json, info_json):
     return imgs
 
 
-def extract_yolo_pred_imgs(video_name, th_sec, th_iou, with_normal):
+def extract_yolo_pred_imgs(video_name, th_sec, th_iou, data_type):
     # get data
     annotation_lst = np.loadtxt(
         os.path.join(f"out/{video_name}/{video_name}_ann.tsv"),
@@ -100,7 +100,7 @@ def extract_yolo_pred_imgs(video_name, th_sec, th_iou, with_normal):
             # extract yolo preds greater than th_iou
             ious = calc_ious(paint_bbox, yolo_preds_tmp[:, 1:5].astype(np.float32))
             yolo_preds_anomaly = yolo_preds_tmp[ious >= th_iou]
-            if with_normal:
+            if data_type == "anomaly":
                 yolo_preds_normal = yolo_preds_tmp[ious < th_iou]
 
             label = ann[8]
@@ -110,13 +110,20 @@ def extract_yolo_pred_imgs(video_name, th_sec, th_iou, with_normal):
                 print("error label", video_name, label)
                 continue
 
-            for pred in yolo_preds_anomaly:
-                x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
-                imgs.append((1, frame[y1:y2, x1:x2]))
-            if with_normal:
+            if data_type == "label" or data_type == "label_type":
+                for pred in yolo_preds_anomaly:
+                    x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
+                    imgs.append((label, frame[y1:y2, x1:x2]))
+            elif data_type == "anomaly":
+                for pred in yolo_preds_anomaly:
+                    x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
+                    imgs.append((1, frame[y1:y2, x1:x2]))
                 for pred in yolo_preds_normal:
                     x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
                     imgs.append((0, frame[y1:y2, x1:x2]))
+            else:
+                raise ValueError
+
     del cap
     return imgs
 

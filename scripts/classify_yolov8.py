@@ -80,7 +80,7 @@ if __name__ == "__main__":
                     continue
 
                 video_name = video_id_to_name[video_id]
-                imgs += extract_yolo_pred_imgs(video_name, th_sec, th_iou)
+                imgs += extract_yolo_pred_imgs(video_name, th_sec, th_iou, data_type)
         else:
             raise ValueError
 
