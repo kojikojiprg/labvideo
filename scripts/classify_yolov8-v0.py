@@ -12,12 +12,12 @@ from src.data import (
     collect_paint_imgs,
     create_dataset_classify_paint,
     create_dataset_classify_yolo_pred,
-    extract_yolo_pred_imgs,
+    extract_yolo_preds,
 )
 from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
 
-VERSION = 0
+VER = 0
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     data_name = f"classify_{dataset_type}"
     if dataset_type == "yolo":
         data_name += f"_sec{th_sec}_iou{th_iou}"
-    data_root = f"datasets/v{VERSION}/{data_name}"
+    data_root = f"datasets/v{VER}/{data_name}"
     os.makedirs(data_root, exist_ok=True)
 
     # create dataset
@@ -57,7 +57,7 @@ if __name__ == "__main__":
         ann_json = json_handler.load("annotation/annotation.json")
         info_json = json_handler.load("annotation/info.json")
         if dataset_type == "paint":
-            imgs = collect_paint_imgs(ann_json, info_json)
+            data = collect_paint_imgs(ann_json, info_json)
         elif dataset_type == "yolo":
             video_id_to_name = {
                 data[0]: data[1].split(".")[0]
@@ -71,35 +71,35 @@ if __name__ == "__main__":
                 if data[0] != "" and data[1] != ""
             }
 
-            imgs = []
+            data = []
             for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
                 if video_id not in info_json:
                     tqdm.write(f"{video_id} is not in info.json")
                     continue
 
                 video_name = video_id_to_name[video_id]
-                imgs += extract_yolo_pred_imgs(video_name, th_sec, th_iou, data_type)
+                data += extract_yolo_preds(video_name, th_sec, th_iou, data_type)
         else:
             raise ValueError
 
         np.random.seed(42)
-        random_idxs = np.random.choice(np.arange(len(imgs)), len(imgs))
+        random_idxs = np.random.choice(np.arange(len(data)), len(data))
 
-        train_length = int(len(imgs) * 0.7)
+        train_length = int(len(data) * 0.7)
         train_idxs = random_idxs[:train_length]
         test_idxs = random_idxs[train_length:]
 
         if dataset_type == "paint":
             create_dataset_classify_paint(
-                imgs, train_idxs, data_root, data_type, "train"
+                data, train_idxs, data_root, data_type, "train"
             )
-            create_dataset_classify_paint(imgs, test_idxs, data_root, data_type, "test")
+            create_dataset_classify_paint(data, test_idxs, data_root, data_type, "test")
         elif dataset_type == "yolo":
             create_dataset_classify_yolo_pred(
-                imgs, train_idxs, data_root, data_type, "train"
+                data, train_idxs, data_root, data_type, "train"
             )
             create_dataset_classify_yolo_pred(
-                imgs, test_idxs, data_root, data_type, "test"
+                data, test_idxs, data_root, data_type, "test"
             )
 
     if args.train:
@@ -108,18 +108,16 @@ if __name__ == "__main__":
     else:
         # only prediction
         v_num = args.version
-        yolo_result_dir = f"runs/v{VERSION}/{data_name}/{data_type}"
+        yolo_result_dir = f"runs/v{VER}/{data_name}/{data_type}"
         if v_num is not None:
             yolo_result_dir += f"-v{v_num}"
 
     # prediction
-    train_paths = sorted(
-        glob(
-            os.path.join(f"datasets/v{VERSION}/{data_name}", data_type, "train", "**", "*.jpg")
-        )
+    train_paths = glob(
+        os.path.join(f"datasets/v{VER}/{data_name}", data_type, "train", "**", "*.jpg")
     )
-    test_paths = sorted(
-        glob(os.path.join(f"datasets/v{VERSION}/{data_name}", data_type, "test", "**", "*.jpg"))
+    test_paths = glob(
+        os.path.join(f"datasets/v{VER}/{data_name}", data_type, "test", "**", "*.jpg")
     )
 
     results_train, missed_img_path_train = pred_classify(
