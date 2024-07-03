@@ -15,7 +15,7 @@ from ultralytics import YOLO
 
 
 def train_classify(data_name, data_type):
-    model = YOLO("yolov8n-cls.pt")
+    model = YOLO("models/yolo/yolov8n-cls.pt")
     model.train(data=f"{data_name}/{data_type}/", epochs=100, task="classify")
 
     # get trained data dir

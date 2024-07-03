@@ -5,9 +5,9 @@ import cv2
 from tqdm import tqdm
 
 
-def create_dataset_classify_paint(imgs, idxs, data_root, data_type, stage):
+def create_dataset_classify_paint(data, idxs, data_root, data_type, stage):
     for idx in idxs:
-        label, img_name = imgs[idx]
+        aid, label, img_name = data[idx]
 
         if data_type == "label":
             lbl_txt = label  # A11~C42
@@ -21,9 +21,10 @@ def create_dataset_classify_paint(imgs, idxs, data_root, data_type, stage):
         shutil.copyfile(os.path.join("annotation/images", img_name), img_path)
 
 
-def create_dataset_classify_yolo_pred(imgs, idxs, data_root, data_type, stage):
+# TODO: delete anomaly option after creating anomaly detection model
+def create_dataset_classify_yolo_pred(data, idxs, data_root, data_type, stage):
     for i, idx in enumerate(tqdm(idxs)):
-        label, img = imgs[idx]
+        key, label, img = data[idx]
         if len(img.shape) != 3:
             raise ValueError(f"{img.shape}")
 
