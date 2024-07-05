@@ -37,4 +37,4 @@ for dir_path in tqdm(dirs, ncols=100):
     )
 
 header = "video_name\ttotal\tcount\tratio"
-np.savetxt("out/count_patin_within_bbox.tsv", results, "%s", header=header, comments="")
+np.savetxt("out/count_patin_within_bbox.tsv", results, "%s", header=header, comments="", delimiter="\t")
