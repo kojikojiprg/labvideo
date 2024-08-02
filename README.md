@@ -17,6 +17,19 @@ YOLOとSMILEtrackを使用して物体認識とトラッキングを行う
 ```out/[動画名]/[動画名]_det.tsv``` に結果を保存
 ```out/[動画名]/[動画名]_det.mp4``` に結果の動画を保存
 
+options:
+- ```-f, --finetuned_model```: finetuningされたyolov8のweightsを使用する
+- ```-v, --video```: 検出結果のmp4を保存する
+
+### yolov8_finetuning.py
+YOLOv8を実験器具でファインチューニングする  
+```annotation/yolov8_finetuning/``` にあるデータから学習用とテスト用のデータセットに分け、```datasets/yolov8_finetuning/``` に保存する  
+このデータセットを用いて学習する  
+
+options:
+- ```-cd, --create_dataset```: データセットを作成する
+
+
 ### get_paint_bbox.py
 ```annotation/video/``` にある動画の黒丸部分を切り出す
 - ```annotation/paint_bbox.json``` に切り出した結果の座標を保存
@@ -62,3 +75,6 @@ options:
 - ```-v, --version```: テストバージョン(--train を指定したときは無効)
 - ```th_sec```(dataset==yolo): 異常とするYOLOの物体認識結果のPaintとの発生時間の閾値
 - ```th_iou```(dataset==yolo): 異常とするYOLOの物体認識結果のPaintとのIoUの閾値
+
+#### アップデート履歴
+- v1: ラベル毎に学習データとテストデータを分類 (データリークを防ぐため)
