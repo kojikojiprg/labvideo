@@ -1,5 +1,3 @@
-import os
-import urllib.request
 from typing import List
 
 import cv2
@@ -16,23 +14,13 @@ class ObjectTracking:
         self._cfg = yaml_handler.load(cfg_path)
         self._device = device
 
-        yolo_url = self._cfg.yolo.weights
-        yolo_name = os.path.basename(yolo_url)
-        yolo_path = f"./models/yolo/{yolo_name}"
-        self._download_weights(yolo_url, yolo_path)
+        yolo_path = self._cfg.yolo.weights
         self._yolo = YOLO(yolo_path, verbose=False).to(self._device)
 
         self._tracker = SMILEtrack(self._cfg.tracking)
 
     def __del__(self):
         del self._yolo, self._tracker
-
-    @staticmethod
-    def _download_weights(url, path):
-        if not os.path.exists(path):
-            print(f"downloading model wights from {url}")
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            urllib.request.urlretrieve(url, path)
 
     def predict(self, img: np.array):
         bboxs = self._yolo.predict(img, verbose=False)[0].boxes.data.cpu().numpy()
