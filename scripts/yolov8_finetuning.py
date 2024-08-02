@@ -15,7 +15,9 @@ from src.utils import yaml_handler
 def summarize_dataset(output_paths, train_ids, test_ids, classes, data_root):
     label_counts = {c: 0 for c in classes}
     train_label_counts = {c: 0 for c in classes}
+    train_label_counts_videos = {vid: {c: 0 for c in classes} for vid in train_ids}
     test_label_counts = {c: 0 for c in classes}
+    test_label_counts_videos = {vid: {c: 0 for c in classes} for vid in test_ids}
     for output_path in output_paths:
         outputs = np.loadtxt(output_path, str, delimiter=" ")
         file_name = os.path.basename(output_path).replace(".txt", "")
@@ -27,11 +29,31 @@ def summarize_dataset(output_paths, train_ids, test_ids, classes, data_root):
             label_counts[label] += 1
             if video_id in train_ids:
                 train_label_counts[label] += 1
+                train_label_counts_videos[video_id][label] += 1
             if video_id in test_ids:
                 test_label_counts[label] += 1
+                test_label_counts_videos[video_id][label] += 1
 
     df_train = pd.DataFrame(train_label_counts, index=["train"])
+    df_train_videos = [
+        pd.DataFrame(counts, index=[vid])
+        for vid, counts in train_label_counts_videos.items()
+    ]
+    df_summary_train = pd.concat(df_train_videos + [df_train], axis=0)
+    df_summary_train.to_csv(
+        os.path.join(data_root, "summary_dataset_train.tsv"), sep="\t"
+    )
+
     df_test = pd.DataFrame(test_label_counts, index=["test"])
+    df_test_videos = [
+        pd.DataFrame(counts, index=[vid])
+        for vid, counts in test_label_counts_videos.items()
+    ]
+    df_summary_test = pd.concat(df_test_videos + [df_test], axis=0)
+    df_summary_test.to_csv(
+        os.path.join(data_root, "summary_dataset_test.tsv"), sep="\t"
+    )
+
     df_total = pd.DataFrame(label_counts, index=["total"])
     df_summary = pd.concat([df_train, df_test, df_total], axis=0)
     df_summary.to_csv(os.path.join(data_root, "summary_dataset.tsv"), sep="\t")
