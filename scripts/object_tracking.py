@@ -11,13 +11,15 @@ from src.model import ObjectTracking
 from src.utils import video, vis
 
 parser = argparse.ArgumentParser()
+parser.add_argument("-f", "--finetuned_model", action="store_true")
 parser.add_argument("-v", "--video", action="store_true")
-parser.add_argument(
-    "-c", "--config_path", required=False, default="configs/object_detection.yml"
-)
 args = parser.parse_args()
 
-config_path = args.config_path
+use_finetuned_model = args.finetuned_model
+if use_finetuned_model:
+    config_path = "configs/object_detection_finetuned.yml"
+else:
+    config_path = "configs/object_detection.yml"
 
 # get all video path
 video_paths = sorted(glob(os.path.join("video", "*.mp4")))
@@ -36,7 +38,10 @@ for video_path in tqdm(video_paths, ncols=100):
 
     # create video writer
     if args.video:
-        yolo_video_path = os.path.join(out_dir, f"{video_name}_det.mp4")
+        if use_finetuned_model:
+            yolo_video_path = os.path.join(out_dir, f"{video_name}_det_finetuned.mp4")
+        else:
+            yolo_video_path = os.path.join(out_dir, f"{video_name}_det.mp4")
         wtr = video.Writer(yolo_video_path, cap.fps, cap.size)
 
     # predict using yolo
@@ -59,7 +64,10 @@ for video_path in tqdm(video_paths, ncols=100):
     # save tsv
     header = "n_frame\tx1\ty1\tx2\ty2\tconf\tcls\ttid\tstart_frame\ttracklet_len"
     fmt = ("%d", "%f", "%f", "%f", "%f", "%f", "%d", "%d", "%d", "%d")
-    det_tsv_path = os.path.join(out_dir, f"{video_name}_det.tsv")
+    if use_finetuned_model:
+        det_tsv_path = os.path.join(out_dir, f"{video_name}_det_finetuned.tsv")
+    else:
+        det_tsv_path = os.path.join(out_dir, f"{video_name}_det.tsv")
     np.savetxt(det_tsv_path, det_rslt, fmt, "\t", header=header, comments="")
 
     del model  # reset model
