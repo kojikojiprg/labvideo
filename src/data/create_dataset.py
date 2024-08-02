@@ -43,3 +43,24 @@ def create_dataset_classify_yolo_pred(data, idxs, data_root, data_type, stage):
         os.makedirs(os.path.dirname(img_path), exist_ok=True)
 
         cv2.imwrite(img_path, img)
+
+
+def create_dataset_yolov8_finetuning(frame_paths, output_paths, video_ids, data_root, stage):
+    for frame_path, output_path in zip(frame_paths, output_paths):
+        file_name = os.path.basename(frame_path).replace(".jpg", "")
+        video_id = file_name.split("_")[0]
+        if video_id not in video_ids:
+            continue
+
+        copy_frame_path = os.path.join(data_root, "images", stage, f"{file_name}.jpg")
+        copy_output_path = os.path.join(data_root, "labels", stage, f"{file_name}.txt")
+
+        img_dir = os.path.dirname(copy_frame_path)
+        if not os.path.exists(img_dir):
+            os.makedirs(img_dir)
+        lbl_dir = os.path.dirname(copy_output_path)
+        if not os.path.exists(lbl_dir):
+            os.makedirs(lbl_dir)
+
+        shutil.copyfile(frame_path, copy_frame_path)
+        shutil.copyfile(output_path, copy_output_path)

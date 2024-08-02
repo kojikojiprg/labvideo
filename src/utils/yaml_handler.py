@@ -18,3 +18,8 @@ def _get_reccursive(config: dict) -> SimpleNamespace:
         else:
             continue
     return new_config
+
+
+def dump(yaml_path, data):
+    with open(yaml_path, "w") as f:
+        yaml.safe_dump(data, f, sort_keys=False)
