@@ -65,10 +65,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "-cd", "--create_dataset", required=False, action="store_true", default=False
     )
-    parser.add_argument(
-        "-tr", "--train", required=False, action="store_true", default=False
-    )
-    parser.add_argument("-v", "--version", required=False, type=int, default=None)
     args = parser.parse_args()
 
     data_name = "yolov8_finetuning"
