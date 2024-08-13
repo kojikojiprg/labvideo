@@ -1,7 +1,7 @@
 import argparse
 import os
-from glob import glob
 import sys
+from glob import glob
 
 import numpy as np
 from tqdm import tqdm
