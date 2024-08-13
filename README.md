@@ -12,7 +12,24 @@ pip install -U torch==2.1.2 torchvision --index-url https://download.pytorch.org
 
 
 ## Scripts
-### object_tracking.py
+### Annotation
+#### get_paint_bbox.py
+```annotation/video/``` にある動画の黒丸部分を切り出す
+- ```annotation/paint_bbox.json``` に切り出した結果の座標を保存
+- ```annotation/paint_error.tsv``` に切り出せなかった結果を保存
+- ```annotation/images/``` に切り出した画像を保存
+
+#### collect_annotation.py
+```annotation/annotation.json``` と ```annotation/paint_bbox.json``` からアノテーションを時系列に並べる  
+```out/[動画名]/[動画名]_ann.tsv``` に結果を保存
+
+#### create_trainsition_matrix.py
+```annotation/annotation.json``` からラベルの遷移行列を生成する  
+```out/transition_matrix/``` に遷移行列のプロットを保存  
+```*_clipXX.jpg``` は状態遷移をXXを上限にしたプロット
+
+### Prediction
+#### object_tracking.py
 YOLOとSMILEtrackを使用して物体認識とトラッキングを行う  
 ```out/[動画名]/[動画名]_det.tsv``` に結果を保存
 ```out/[動画名]/[動画名]_det.mp4``` に結果の動画を保存
@@ -21,7 +38,7 @@ options:
 - ```-f, --finetuned_model```: finetuningされたyolov8のweightsを使用する
 - ```-v, --video```: 検出結果のmp4を保存する
 
-### yolov8_finetuning.py
+#### yolov8_finetuning.py
 YOLOv8を実験器具でファインチューニングする  
 ```annotation/yolov8_finetuning/``` にあるデータから学習用とテスト用のデータセットに分け、```datasets/yolov8_finetuning/``` に保存する  
 このデータセットを用いて学習する  
@@ -29,35 +46,31 @@ YOLOv8を実験器具でファインチューニングする
 options:
 - ```-cd, --create_dataset```: データセットを作成する
 
-
-### get_paint_bbox.py
-```annotation/video/``` にある動画の黒丸部分を切り出す
-- ```annotation/paint_bbox.json``` に切り出した結果の座標を保存
-- ```annotation/paint_error.tsv``` に切り出せなかった結果を保存
-- ```annotation/images/``` に切り出した画像を保存
-
-### collect_annotation.py
-```annotation/annotation.json``` と ```annotation/paint_bbox.json``` からアノテーションを時系列に並べる  
-```out/[動画名]/[動画名]_ann.tsv``` に結果を保存
-
-### compare_ann_det.py
-```out/[動画名]/[動画名]_ann.tsv``` と ```out/[動画名]/[動画名]_det.tsv``` の結果を3Dグラフにする  
-```out/compare_ann_det/[動画名]_plot.mp4``` に3Dグラフを縦軸で回転させた動画を保存　
-
-### create_trainsition_matrix.py
-```annotation/annotation.json``` からラベルの遷移行列を生成する  
-```out/transition_matrix/``` に遷移行列のプロットを保存  
-```*_clipXX.jpg``` は状態遷移をXXを上限にしたプロット
-
-### predict_llava.py
+#### predict_llava.py
 object_tracking.py の結果に対して、LLaVAを用いて物体にラベルをつける
 ```out/[動画名]/[動画名]_llava.tsv``` に結果を保存
 
-### count_paint_within_bbox.py
+options:
+- ```-f, --finetuned_model```: finetuningされたyolov8の結果を使用する  
+  ```out/[動画名]/[動画名]_llava_finetuned.tsv``` に結果を保存
+
+#### compare_ann_det.py
+```out/[動画名]/[動画名]_ann.tsv``` と ```out/[動画名]/[動画名]_det.tsv``` の結果を3Dグラフにする  
+```out/compare_ann_det/[動画名]_plot.mp4``` に3Dグラフを縦軸で回転させた動画を保存　
+
+options:
+- ```-f, --finetuned_model```: finetuningされたyolov8の結果を使用する  
+  ```out/compare_ann_det_finetuned/[動画名]_plot_finetuned.mp4``` に3Dグラフを縦軸で回転させた動画を保存　
+
+#### count_paint_within_bbox.py
 YOLOv8の予測結果の中に、Paintの中心座標がどれくらいの入っているかを計算する
 ```out/count_patin_within_bbox.tsv``` に結果を保存
 
-### classify_yolo.py
+options:
+- ```-f, --finetuned_model```: finetuningされたyolov8の結果を使用する  
+  ```out/count_patin_within_bbox_finetuned.tsv``` に結果を保存
+
+#### classify_yolo.py
 Yolov8n-cls.pt をファインチューニングして分類した  
 positional arguments:
 - ```dataset_type```: 'paint' or 'yolo'
@@ -76,5 +89,5 @@ options:
 - ```th_sec```(dataset==yolo): 異常とするYOLOの物体認識結果のPaintとの発生時間の閾値
 - ```th_iou```(dataset==yolo): 異常とするYOLOの物体認識結果のPaintとのIoUの閾値
 
-#### アップデート履歴
+##### アップデート履歴
 - v1: ラベル毎に学習データとテストデータを分類 (データリークを防ぐため)
