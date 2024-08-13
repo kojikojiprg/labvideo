@@ -1,8 +1,19 @@
+import argparse
 import os
 from glob import glob
 
 import numpy as np
 from tqdm import tqdm
+
+# parser
+parser = argparse.ArgumentParser()
+parser.add_argument("-f", "--finetuned_model", action="store_true")
+args = parser.parse_args()
+
+if args.finetuned_model:
+    str_finetuned = "_finetuned"
+else:
+    str_finetuned = ""
 
 dirs = sorted(glob("out/*/"))
 dirs = [dir_path for dir_path in dirs if len(glob(f"{dir_path}/*_ann.tsv")) > 0]
@@ -12,7 +23,9 @@ for dir_path in tqdm(dirs, ncols=100):
     video_name = os.path.basename(os.path.dirname(dir_path))
 
     ann_data = np.loadtxt(f"{dir_path}/{video_name}_ann.tsv", skiprows=1, dtype=str)
-    yolo_preds = np.loadtxt(f"{dir_path}/{video_name}_det.tsv", skiprows=1, dtype=float)
+    yolo_preds = np.loadtxt(
+        f"{dir_path}/{video_name}_det{str_finetuned}.tsv", skiprows=1, dtype=float
+    )
     if len(ann_data) == 0 or len(yolo_preds) == 0:
         continue
 
@@ -37,4 +50,11 @@ for dir_path in tqdm(dirs, ncols=100):
     )
 
 header = "video_name\ttotal\tcount\tratio"
-np.savetxt("out/count_patin_within_bbox.tsv", results, "%s", header=header, comments="", delimiter="\t")
+np.savetxt(
+    f"out/count_patin_within_bbox{str_finetuned}.tsv",
+    results,
+    "%s",
+    header=header,
+    comments="",
+    delimiter="\t",
+)

@@ -173,6 +173,8 @@ if __name__ == "__main__":
 
     if args.finetuned_model:
         str_finetuned = "_finetuned"
+    else:
+        str_finetuned = ""
 
     # create prompt
     prompt_path = f"prompts/prompt_v{prompt_v}.txt"

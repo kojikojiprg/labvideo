@@ -15,10 +15,16 @@ plt.rcParams["axes.prop_cycle"] = plt.cycler("color", plt.get_cmap("tab20").colo
 
 # parser
 parser = argparse.ArgumentParser()
+parser.add_argument("-f", "--finetuned_model", action="store_true")
 parser.add_argument("-tc", "--th_conf", required=False, default=0.3)
 args = parser.parse_args()
 
 th_conf = args.th_conf
+
+if args.finetuned_model:
+    str_finetuned = "_finetuned"
+else:
+    str_finetuned = ""
 
 # load json files
 ann_json = json_handler.load("annotation/annotation.json")
@@ -47,7 +53,7 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
         f"out/{video_name}/{video_name}_ann.tsv", skiprows=1, dtype=str
     )
     yolo_preds = np.loadtxt(
-        f"out/{video_name}/{video_name}_det.tsv", skiprows=1, dtype=float
+        f"out/{video_name}/{video_name}_det{str_finetuned}.tsv", skiprows=1, dtype=float
     )
 
     cap = video.Capture(f"video/{video_name}.mp4")
@@ -118,17 +124,17 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
         ax.view_init(elev=20, azim=angle)
         fig.canvas.draw()
         img = np.array(fig.canvas.renderer.buffer_rgba())
-        img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
+        img = cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
         img = img[250:-200, 150:-50]
         imgs.append(img)
 
     # write video
     size = imgs[0].shape[1::-1]
     # wrt = video.Writer(f"out/{video_name}/{video_name}_plot.mp4", 30, size)
-    out_dir = "out/compare_ann_det"
+    out_dir = f"out/compare_ann_det{str_finetuned}"
     # out_dir = "out/annotation_3d_plot"
     os.makedirs(out_dir, exist_ok=True)
-    wrt = video.Writer(f"{out_dir}/{video_name}_plot.mp4", 30, size)
+    wrt = video.Writer(f"{out_dir}/{video_name}_plot{str_finetuned}.mp4", 30, size)
     wrt.write_each(imgs)
     del wrt
 
