@@ -29,6 +29,7 @@ if __name__ == "__main__":
     parser.add_argument("-sec", "--th_sec", required=False, type=float, default=1.0)
 
     # optional
+    parser.add_argument("-f", "--finetuned_model", action="store_true")
     parser.add_argument(
         "-cd", "--create_dataset", required=False, action="store_true", default=False
     )
@@ -46,10 +47,15 @@ if __name__ == "__main__":
     if data_type == "anomaly":
         assert dataset_type == "yolo"
 
-    data_name = f"classify_{dataset_type}"
+    if args.finetuned_model:
+        str_finetuned = "_finetuned"
+    else:
+        str_finetuned = ""
+
+    data_name = f"classify_{dataset_type}{str_finetuned}"
     if dataset_type == "yolo":
-        data_name += f"_sec{th_sec}_iou{th_iou}"
-    data_root = f"datasets/v{VER}/{data_name}"
+        data_name += f"_sec{th_sec}_iou{th_iou}{str_finetuned}"
+    data_root = f"datasets/v{VER}/{data_name}{str_finetuned}"
     os.makedirs(data_root, exist_ok=True)
 
     # create dataset
@@ -78,7 +84,13 @@ if __name__ == "__main__":
                     continue
 
                 video_name = video_id_to_name[video_id]
-                data += extract_yolo_preds(video_name, th_sec, th_iou, data_type)
+                data += extract_yolo_preds(
+                    video_name,
+                    th_sec,
+                    th_iou,
+                    data_type,
+                    is_finetuned=args.finetuned_model,
+                )
         else:
             raise ValueError
 
@@ -108,16 +120,28 @@ if __name__ == "__main__":
     else:
         # only prediction
         v_num = args.version
-        yolo_result_dir = f"runs/v{VER}/{data_name}/{data_type}"
+        yolo_result_dir = f"runs/v{VER}/{data_name}/{data_type}{str_finetuned}"
         if v_num is not None:
             yolo_result_dir += f"-v{v_num}"
 
     # prediction
     train_paths = glob(
-        os.path.join(f"datasets/v{VER}/{data_name}", data_type, "train", "**", "*.jpg")
+        os.path.join(
+            f"datasets/v{VER}/{data_name}{str_finetuned}",
+            data_type,
+            "train",
+            "**",
+            "*.jpg",
+        )
     )
     test_paths = glob(
-        os.path.join(f"datasets/v{VER}/{data_name}", data_type, "test", "**", "*.jpg")
+        os.path.join(
+            f"datasets/v{VER}/{data_name}{str_finetuned}",
+            data_type,
+            "test",
+            "**",
+            "*.jpg",
+        )
     )
 
     results_train, missed_img_path_train = pred_classify(
@@ -127,7 +151,9 @@ if __name__ == "__main__":
         test_paths, "test", yolo_result_dir
     )
 
-    missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
+    missed_imgs_dir = os.path.join(
+        yolo_result_dir, f"missed_images_test{str_finetuned}"
+    )
     if os.path.exists(missed_imgs_dir):
         shutil.rmtree(missed_imgs_dir)
     os.makedirs(missed_imgs_dir, exist_ok=True)

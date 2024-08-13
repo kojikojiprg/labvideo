@@ -45,7 +45,12 @@ def collect_paint_imgs(ann_json, info_json):
 
 
 # TODO: delete anomaly option after creating anomaly detection model
-def extract_yolo_preds(video_name, th_sec, th_iou, data_type):
+def extract_yolo_preds(video_name, th_sec, th_iou, data_type, is_finetuned):
+    if is_finetuned:
+        str_finetuned = "_finetuned"
+    else:
+        str_finetuned = ""
+
     # get data
     annotation_lst = np.loadtxt(
         os.path.join(f"out/{video_name}/{video_name}_ann.tsv"),
@@ -56,7 +61,7 @@ def extract_yolo_preds(video_name, th_sec, th_iou, data_type):
     if len(annotation_lst) == 0:
         return []
     yolo_preds = np.loadtxt(
-        os.path.join(f"out/{video_name}/{video_name}_det.tsv"),
+        os.path.join(f"out/{video_name}/{video_name}_det{str_finetuned}.tsv"),
         str,
         delimiter="\t",
         skiprows=1,
