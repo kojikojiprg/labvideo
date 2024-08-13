@@ -1,9 +1,7 @@
 import argparse
-import os
 import sys
 import warnings
 
-import cv2
 import numpy as np
 import torch
 from llava.constants import DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
@@ -16,7 +14,6 @@ from llava.mm_utils import (
 )
 from llava.model.builder import load_pretrained_model
 from llava.utils import disable_torch_init
-from scipy import stats
 from tqdm import tqdm
 from transformers import TextStreamer
 
@@ -104,32 +101,14 @@ def pred_llava(
     max_new_tokens=512,
 ):
     llava_preds = []
-    track_ids = np.unique(yolo_preds[:, 7]).astype(int)
     with torch.inference_mode():
-        for tid in tqdm(track_ids, ncols=100, leave=False, desc=video_name):
-            preds_tmp = np.array([pred for pred in yolo_preds if pred[7] == tid])
-            if len(preds_tmp) == 0:
-                continue
-
-            if len(preds_tmp) > n_imgs:
-                # get top 'n_imgs' of highest confidence preds
-                pred_idxs = np.argpartition(-preds_tmp[:, 5], n_imgs)[:n_imgs]
-                preds_tmp = preds_tmp[pred_idxs]
-            else:
-                preds_tmp = preds_tmp[:n_imgs]
-
-            img_dir = f"out/{video_name}/images"
-            os.makedirs(img_dir, exist_ok=True)
-            imgs = []
-            for pred in preds_tmp:
-                x1, y1, x2, y2 = pred[1:5].astype(int)
-                ret, frame = cap.read(pred[0])
-                if not ret:
-                    ValueError
-                img = frame[y1:y2, x1:x2]
-                imgs.append(img)
-            # save the highest confidence images
-            cv2.imwrite(f"{img_dir}/tid{tid}.jpg", imgs[0])
+        for i, pred in enumerate(tqdm(yolo_preds, ncols=100, leave=False, desc=video_name)):
+            x1, y1, x2, y2 = pred[1:5].astype(int)
+            ret, frame = cap.read(pred[0])
+            if not ret:
+                ValueError
+            img = frame[y1:y2, x1:x2]
+            imgs = [img]
 
             # create input image tensor
             imgs_tensor = []
@@ -158,9 +137,9 @@ def pred_llava(
             ).replace("<s>", "")
             conv.messages[-1][-1] = outputs
 
-            conf = np.round(np.mean(preds_tmp[:, 5]), 3)
-            cls_id = stats.mode(preds_tmp[:, 6])
-            llava_preds.append([tid, conf, int(cls_id.mode), len(preds_tmp), outputs])
+            conf = np.round(pred[5], 3)
+            cls_id = pred[6]
+            llava_preds.append([i, conf, int(cls_id), 1, outputs])
     return llava_preds
 
 
@@ -168,7 +147,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-vn", "--video_name", type=str, required=False, default=None)
     parser.add_argument("-pv", "--prompt_version", type=int, required=False, default=0)
-    parser.add_argument("-ni", "--n_images", type=int, required=False, default=5)
+    parser.add_argument("-ni", "--n_images", type=int, required=False, default=1)
 
     parser.add_argument(
         "-mp",
@@ -246,7 +225,7 @@ if __name__ == "__main__":
 
         cols = "tid\tyolo_conf\tyolo_cls\tn_imgs\tlabel"
         np.savetxt(
-            f"out/{video_name}/{video_name}_llava_p{prompt_v}.tsv",
+            f"out/{video_name}/{video_name}_llava_p{prompt_v}_each.tsv",
             llava_preds,
             fmt="%s",
             delimiter="\t",
