@@ -24,8 +24,20 @@ class ObjectTracking:
 
     def predict(self, img: np.array):
         bboxs = self._yolo.predict(img, verbose=False)[0].boxes.data.cpu().numpy()
+
+        # check confidence
         bboxs = bboxs[bboxs[:, 4] > self._cfg.yolo.th_conf]
-        bboxs = bboxs[nms(bboxs, self._cfg.yolo.th_iou)]
+
+        # check iou
+        unique_labels = np.unique(bboxs[:, 5])
+        bboxs_keep = np.empty((0, 6))
+        for label in unique_labels:
+            bboxs_tmp = bboxs[bboxs[:, 5] == label]
+            bboxs_tmp = bboxs_tmp[nms(bboxs_tmp, self._cfg.yolo.th_iou)]
+            bboxs_keep = np.concatenate([bboxs_keep, bboxs_tmp], axis=0)
+        bboxs = bboxs_keep.copy()
+
+        # check area size
         areas = (bboxs[:, 2] - bboxs[:, 0]) * (bboxs[:, 3] - bboxs[:, 1])
         bboxs = bboxs[
             (self._cfg.yolo.min_area < areas) & (areas < self._cfg.yolo.max_area)

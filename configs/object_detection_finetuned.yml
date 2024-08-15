@@ -1,15 +1,15 @@
 yolo:
   weights: runs/detect/train/weights/last.pt
-  th_conf: 0.05
-  th_iou: 0.95
+  th_conf: 0.1
+  th_iou: 0.05
   max_area: 100000
   min_area: 10
 
 tracking:
-  track_high_thresh: 0.3
+  track_high_thresh: 0.5
   track_low_thresh: 0.05
   new_track_thresh: 0.05
-  track_buffer: 20
+  track_buffer: 30
   cmc_method: sparseOptFlow
   name: exp
   ablation: False
