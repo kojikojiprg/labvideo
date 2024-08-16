@@ -11,8 +11,6 @@ from src.data import collect_paint_imgs, create_dataset_classify_paint
 from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
 
-VER = 0
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_type", type=str, help="'label' or 'label_type'")
@@ -28,8 +26,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     data_type = args.data_type
-    th_iou = args.th_iou
-    th_sec = args.th_sec
 
     data_name = "classify_paint"
     data_root = f"datasets/{data_name}"
@@ -56,14 +52,14 @@ if __name__ == "__main__":
     else:
         # only prediction
         v_num = args.version
-        yolo_result_dir = f"runs/v{VER}/{data_name}/{data_type}"
+        yolo_result_dir = f"runs/{data_name}/{data_type}"
         if v_num is not None:
             yolo_result_dir += f"-v{v_num}"
 
     # prediction
     train_paths = glob(
         os.path.join(
-            f"datasets/v{VER}/{data_name}",
+            f"datasets/{data_name}",
             data_type,
             "train",
             "**",
@@ -72,7 +68,7 @@ if __name__ == "__main__":
     )
     test_paths = glob(
         os.path.join(
-            f"datasets/v{VER}/{data_name}",
+            f"datasets/{data_name}",
             data_type,
             "test",
             "**",
