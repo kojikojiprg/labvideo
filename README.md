@@ -29,6 +29,14 @@ pip install -U torch==2.1.2 torchvision --index-url https://download.pytorch.org
 ```*_clipXX.jpg``` は状態遷移をXXを上限にしたプロット
 
 ### Prediction
+#### yolov8_finetuning.py
+YOLOv8を実験器具でファインチューニングする  
+```annotation/yolov8_finetuning/``` にあるデータから学習用とテスト用のデータセットに分け、```datasets/yolov8_finetuning/``` に保存する  
+このデータセットを用いて学習する  
+
+options:
+- ```-cd, --create_dataset```: データセットを作成する
+
 #### object_tracking.py
 YOLOとSMILEtrackを使用して物体認識とトラッキングを行う  
 ```out/[動画名]/[動画名]_det.tsv``` に結果を保存
@@ -38,14 +46,6 @@ options:
 - ```-f, --finetuned_model```: finetuningされたyolov8のweightsを使用する
 - ```-v, --video```: 検出結果のmp4を保存する
 
-#### yolov8_finetuning.py
-YOLOv8を実験器具でファインチューニングする  
-```annotation/yolov8_finetuning/``` にあるデータから学習用とテスト用のデータセットに分け、```datasets/yolov8_finetuning/``` に保存する  
-このデータセットを用いて学習する  
-
-options:
-- ```-cd, --create_dataset```: データセットを作成する
-
 #### predict_llava.py
 object_tracking.py の結果に対して、LLaVAを用いて物体にラベルをつける
 ```out/[動画名]/[動画名]_llava.tsv``` に結果を保存
@@ -53,6 +53,26 @@ object_tracking.py の結果に対して、LLaVAを用いて物体にラベル�
 options:
 - ```-f, --finetuned_model```: finetuningされたyolov8の結果を使用する  
   ```out/[動画名]/[動画名]_llava_finetuned.tsv``` に結果を保存
+- ```-pv, --prompt_version```: ```prompts/```からプロンプトを選択  
+
+#### predict_llava_topk.py
+object_tracking.py の結果のうち、各トラッキングIDの信頼度が高いK枚の画像に対して、LLaVAを用いて物体にラベルをつける
+```out/[動画名]/[動画名]_llava.tsv``` に結果を保存
+
+options:
+- ```-f, --finetuned_model```: finetuningされたyolov8の結果を使用する  
+  ```out/[動画名]/[動画名]_llava_finetuned.tsv``` に結果を保存
+- ```-pv, --prompt_version```: ```prompts/```からプロンプトを選択  
+- ```-ni, --n_imgs```: 指定した枚数だけ信頼度の高い画像を取得する  
+
+#### predict_llava_finetuning_dataset.py
+```datasets/yolov8_finetuning/```のデータに対して、LLaVAを用いて物体にラベルをつける
+```out/[動画名]/[動画名]_llava.tsv``` に結果を保存
+
+options:
+- ```-f, --finetuned_model```: finetuningされたyolov8の結果を使用する  
+  ```out/[動画名]/[動画名]_llava_finetuned.tsv``` に結果を保存
+- ```-pv, --prompt_version```: ```prompts/```からプロンプトを選択  
 
 #### compare_ann_det.py
 ```out/[動画名]/[動画名]_ann.tsv``` と ```out/[動画名]/[動画名]_det.tsv``` の結果を3Dグラフにする  
@@ -70,12 +90,21 @@ options:
 - ```-f, --finetuned_model```: finetuningされたyolov8の結果を使用する  
   ```out/count_patin_within_bbox_finetuned.tsv``` に結果を保存
 
-#### classify_yolo.py
-Yolov8n-cls.pt をファインチューニングして分類した  
+#### classify_paint.py
+Yolov8n-cls.pt をファインチューニングしてアノテーション動画のPaint(丸で囲まれた部分)を分類した  
 positional arguments:
-- ```dataset_type```: 'paint' or 'yolo'
-  - Paintで囲まれたエリアの画像の分類を行う
-  - 物体認識結果 ```out/[動画名]/[動画名]_det.tsv``` で囲まれたエリアの画像の分類を行う
+- ```data_type```: 'label' or 'label_type'
+  - 'label': A11~C42
+  - 'label_type': A~C
+
+options:
+- ```-cd, --create_dataset```: データセットを作成する
+- ```-tr, --train```: ファインチューニングを行う
+- ```-v, --version```: テストバージョン(--train を指定したときは無効)
+
+#### classify_yolo.py
+Yolov8n-cls.pt をファインチューニングして、アノテーション動画のPaintと重なるYOLO検出結果bboxを分類した  
+positional arguments:
 - ```data_type```: 'label' or 'label_type'
   - 'label': A11~C42
   - 'label_type': A~C
