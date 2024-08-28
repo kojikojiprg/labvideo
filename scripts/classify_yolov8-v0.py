@@ -8,12 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 sys.path.append(".")
-from src.data import (
-    collect_paint_imgs,
-    create_dataset_classify_paint,
-    create_dataset_classify_yolo_pred,
-    extract_yolo_preds,
-)
+from src.data import create_dataset_classify_yolo_pred, extract_yolo_classify
 from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
 
@@ -21,7 +16,6 @@ VER = 0
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("dataset_type", type=str, help="'paint' or 'yolo'")
     parser.add_argument("data_type", type=str, help="'label' or 'label_type'")
 
     # optional(dataset_type == 'yolo')
@@ -39,60 +33,50 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--version", required=False, type=int, default=None)
     args = parser.parse_args()
 
-    dataset_type = args.dataset_type
     data_type = args.data_type
     th_iou = args.th_iou
     th_sec = args.th_sec
-
-    if data_type == "anomaly":
-        assert dataset_type == "yolo"
 
     if args.finetuned_model:
         str_finetuned = "_finetuned"
     else:
         str_finetuned = ""
 
-    data_name = f"classify_{dataset_type}{str_finetuned}"
-    if dataset_type == "yolo":
-        data_name += f"_sec{th_sec}_iou{th_iou}{str_finetuned}"
+    data_name = f"classify_yolo{str_finetuned}"
+    data_name += f"_sec{th_sec}_iou{th_iou}{str_finetuned}"
     data_root = f"datasets/v{VER}/{data_name}{str_finetuned}"
-    os.makedirs(data_root, exist_ok=True)
+    os.makedirs(data_root, exist_ok=False)
 
     # create dataset
     if args.create_dataset:
         ann_json = json_handler.load("annotation/annotation.json")
         info_json = json_handler.load("annotation/info.json")
-        if dataset_type == "paint":
-            data = collect_paint_imgs(ann_json, info_json)
-        elif dataset_type == "yolo":
-            video_id_to_name = {
-                data[0]: data[1].split(".")[0]
-                for data in np.loadtxt(
-                    "annotation/annotation.tsv",
-                    str,
-                    delimiter="\t",
-                    skiprows=1,
-                    usecols=[1, 2],
-                )
-                if data[0] != "" and data[1] != ""
-            }
+        video_id_to_name = {
+            data[0]: data[1].split(".")[0]
+            for data in np.loadtxt(
+                "annotation/annotation.tsv",
+                str,
+                delimiter="\t",
+                skiprows=1,
+                usecols=[1, 2],
+            )
+            if data[0] != "" and data[1] != ""
+        }
 
-            data = []
-            for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
-                if video_id not in info_json:
-                    tqdm.write(f"{video_id} is not in info.json")
-                    continue
+        data = []
+        for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
+            if video_id not in info_json:
+                tqdm.write(f"{video_id} is not in info.json")
+                continue
 
-                video_name = video_id_to_name[video_id]
-                data += extract_yolo_preds(
-                    video_name,
-                    th_sec,
-                    th_iou,
-                    data_type,
-                    is_finetuned=args.finetuned_model,
-                )
-        else:
-            raise ValueError
+            video_name = video_id_to_name[video_id]
+            data += extract_yolo_classify(
+                video_name,
+                ann_lst,
+                th_sec,
+                th_iou,
+                is_finetuned=args.finetuned_model,
+            )
 
         np.random.seed(42)
         random_idxs = np.random.choice(np.arange(len(data)), len(data))
@@ -101,18 +85,10 @@ if __name__ == "__main__":
         train_idxs = random_idxs[:train_length]
         test_idxs = random_idxs[train_length:]
 
-        if dataset_type == "paint":
-            create_dataset_classify_paint(
-                data, train_idxs, data_root, data_type, "train"
-            )
-            create_dataset_classify_paint(data, test_idxs, data_root, data_type, "test")
-        elif dataset_type == "yolo":
-            create_dataset_classify_yolo_pred(
-                data, train_idxs, data_root, data_type, "train"
-            )
-            create_dataset_classify_yolo_pred(
-                data, test_idxs, data_root, data_type, "test"
-            )
+        create_dataset_classify_yolo_pred(
+            data, train_idxs, data_root, data_type, "train"
+        )
+        create_dataset_classify_yolo_pred(data, test_idxs, data_root, data_type, "test")
 
     if args.train:
         # train YOLO

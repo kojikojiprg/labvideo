@@ -11,10 +11,10 @@ from src.utils import video
 def collect_paint_imgs(ann_json, info_json):
     image_paths = sorted(glob(os.path.join("annotation/images", "*.jpg")))
     data = []
-    for image_path in image_paths:
+    for image_path in tqdm(image_paths, ncols=100):
         video_id, aid, _ = os.path.basename(image_path).split("_")
         if video_id not in info_json:
-            tqdm.write(f"{video_id} is not in info.json")
+            # tqdm.write(f"{video_id} is not in info.json")
             continue
 
         ann_lst = [ann for ann in ann_json[video_id] if ann["reply"] == aid]
@@ -44,8 +44,7 @@ def collect_paint_imgs(ann_json, info_json):
     return data
 
 
-# TODO: delete anomaly option after creating anomaly detection model
-def extract_yolo_preds(video_name, th_sec, th_iou, data_type, is_finetuned):
+def extract_yolo_classify(video_name, ann_json, th_sec, th_iou, is_finetuned):
     if is_finetuned:
         str_finetuned = "_finetuned"
     else:
@@ -69,9 +68,14 @@ def extract_yolo_preds(video_name, th_sec, th_iou, data_type, is_finetuned):
     cap = video.Capture(f"video/{video_name}.mp4")
     th_n_frame = np.ceil(cap.fps * th_sec).astype(int)
 
+    annotation_n_frames = [np.ceil(float(ann["time"]) * cap.fps).astype(int) for ann in ann_json]
+
     data = []
-    for n_frame in tqdm(range(cap.frame_count), ncols=100, desc=video_name):
-        frame = cap.read()[1]
+    for n_frame in tqdm(annotation_n_frames, ncols=100, desc=video_name):
+        ret, frame = cap.read(n_frame)
+        if not ret:
+            print(f"frame not loaded from n_frame {n_frame} in {video_name}.mp4")
+            continue
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         # obtain yolo preds within th_n_frame
@@ -84,22 +88,13 @@ def extract_yolo_preds(video_name, th_sec, th_iou, data_type, is_finetuned):
             continue
 
         ann_lst = annotation_lst[annotation_lst.T[0].astype(int) == n_frame]
-        if len(ann_lst) == 0 and data_type == "anomaly":
-            # append normal data
-            key = f"{video_name}-0"
-            for pred in yolo_preds_tmp:
-                x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
-                data.append((key, 0, frame[y1:y2, x1:x2]))
-            continue
 
         for ann in ann_lst:
             paint_bbox = ann[1:5].astype(np.float32)
 
             # extract yolo preds greater than th_iou
             ious = calc_ious(paint_bbox, yolo_preds_tmp[:, 1:5].astype(np.float32))
-            yolo_preds_anomaly = yolo_preds_tmp[ious >= th_iou]
-            if data_type == "anomaly":
-                yolo_preds_normal = yolo_preds_tmp[ious < th_iou]
+            yolo_preds_high_iou = yolo_preds_tmp[ious >= th_iou]
 
             label = ann[8]
             try:
@@ -108,22 +103,93 @@ def extract_yolo_preds(video_name, th_sec, th_iou, data_type, is_finetuned):
                 print("error label", video_name, label)
                 continue
 
-            if data_type == "label" or data_type == "label_type":
-                key = f"{video_name}-{label}"
-                for pred in yolo_preds_anomaly:
-                    x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
-                    data.append((key, label, frame[y1:y2, x1:x2]))
-            elif data_type == "anomaly":
-                key = f"{video_name}-1"
-                for pred in yolo_preds_anomaly:
-                    x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
-                    data.append((key, 1, frame[y1:y2, x1:x2]))
-                key = f"{video_name}-0"
-                for pred in yolo_preds_normal:
-                    x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
-                    data.append((key, 0, frame[y1:y2, x1:x2]))
-            else:
-                raise ValueError
+            key = f"{video_name}-{label}"
+            for pred in yolo_preds_high_iou:
+                x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
+                data.append((key, label, frame[y1:y2, x1:x2]))
+
+    del cap
+    return data
+
+
+def extract_yolo_anomaly(video_name, th_sec, th_iou, data_type, is_finetuned):
+    if is_finetuned:
+        str_finetuned = "_finetuned"
+    else:
+        str_finetuned = ""
+
+    # get data
+    annotation_lst = np.loadtxt(
+        os.path.join(f"out/{video_name}/{video_name}_ann.tsv"),
+        str,
+        delimiter="\t",
+        skiprows=1,
+    )
+    if len(annotation_lst) == 0:
+        return []
+    yolo_preds = np.loadtxt(
+        os.path.join(f"out/{video_name}/{video_name}_det{str_finetuned}.tsv"),
+        str,
+        delimiter="\t",
+        skiprows=1,
+    )
+    cap = video.Capture(f"video/{video_name}.mp4")
+    th_n_frame = np.ceil(cap.fps * th_sec).astype(int)
+
+    # create temporary folder
+    # img_tmp_dir = "tmp/"
+    # os.makedirs(img_tmp_dir, exist_ok=False)
+
+    data = []
+    for n_frame in tqdm(range(cap.frame_count), ncols=100, desc=video_name):
+        ret, frame = cap.read(n_frame)
+        if not ret:
+            print(f"frame not loaded from n_frame {n_frame} in {video_name}.mp4")
+            continue
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # obtain yolo preds within th_n_frame
+        th_min = max(n_frame - th_n_frame, 0)
+        th_max = min(n_frame + th_n_frame, cap.frame_count)
+        yp_n_frame = yolo_preds.T[0].astype(int)
+        mask = (th_min <= yp_n_frame) & (yp_n_frame <= th_max)
+        yolo_preds_tmp = yolo_preds[mask]
+        if len(yolo_preds_tmp) == 0:
+            continue
+
+        ann_lst = annotation_lst[annotation_lst.T[0].astype(int) == n_frame]
+        if len(ann_lst) == 0:
+            # append normal data
+            key = f"{video_name}-0"
+            for pred in yolo_preds_tmp:
+                x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
+                img = frame[y1:y2, x1:x2]
+                data.append((key, 0, img))
+            continue
+
+        for ann in ann_lst:
+            paint_bbox = ann[1:5].astype(np.float32)
+
+            # extract yolo preds greater than th_iou
+            ious = calc_ious(paint_bbox, yolo_preds_tmp[:, 1:5].astype(np.float32))
+            yolo_preds_anomaly = yolo_preds_tmp[ious >= th_iou]
+            yolo_preds_normal = yolo_preds_tmp[ious < th_iou]
+
+            label = ann[8]
+            try:
+                label = label.split("(")[1].replace(")", "")  # extract within bracket
+            except IndexError:
+                print("error label", video_name, label)
+                continue
+
+            key = f"{video_name}-1"
+            for pred in yolo_preds_anomaly:
+                x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
+                data.append((key, 1, frame[y1:y2, x1:x2]))
+            key = f"{video_name}-0"
+            for pred in yolo_preds_normal:
+                x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
+                data.append((key, 0, frame[y1:y2, x1:x2]))
 
     del cap
     return data
