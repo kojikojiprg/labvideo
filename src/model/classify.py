@@ -14,15 +14,15 @@ from tqdm import tqdm
 from ultralytics import YOLO
 
 
-def train_classify(data_name, data_type):
+def train_classify(data_name, data_type, data_version):
     model = YOLO("models/yolo/yolov8n-cls.pt")
-    model.train(data=f"{data_name}/{data_type}/", epochs=100, task="classify")
+    model.train(data=f"v{data_version}/{data_name}/{data_type}", epochs=100, task="classify")
 
     # get trained data dir
     dirs = sorted(glob("runs/classify/train*/"))
     trained_dir = dirs[-1]
 
-    yolo_result_dir = f"runs/{data_name}/{data_type}"
+    yolo_result_dir = f"runs/v{data_version}/{data_name}/{data_type}"
     if os.path.exists(yolo_result_dir):
         dirs = sorted(glob(yolo_result_dir + "-v*/"))
         if len(dirs) == 0:

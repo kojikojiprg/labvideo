@@ -21,9 +21,31 @@ def create_dataset_classify_paint(data, idxs, data_root, data_type, stage):
         shutil.copyfile(os.path.join("annotation/images", img_name), img_path)
 
 
-# TODO: delete anomaly option after creating anomaly detection model
-def create_dataset_classify_yolo_pred(data, idxs, data_root, data_type, stage):
-    for i, idx in enumerate(tqdm(idxs)):
+def create_dataset_yolo_classify(data, idxs, data_root, data_type, stage):
+    for i, idx in enumerate(tqdm(idxs, ncols=100)):
+        key, label, img = data[idx]
+        if len(img.shape) != 3:
+            raise ValueError(f"{img.shape}")
+
+        if data_type == "label":
+            if "_" in label:
+                label = label.split("_")[0]  # delete surfix
+            lbl_txt = label  # A11~C42
+        elif data_type == "label_type":
+            lbl_txt = label[0]  # only A, B, C
+        else:
+            raise ValueError
+
+        img_path = os.path.join(data_root, data_type, stage, lbl_txt, f"{i:04d}.jpg")
+        img_dir = os.path.dirname(img_path)
+        if not os.path.exists(img_dir):
+            os.makedirs(os.path.dirname(img_path), exist_ok=False)
+
+        cv2.imwrite(img_path, img)
+
+
+def create_dataset_yolo_anomaly(data, idxs, data_root, data_type, stage):
+    for i, idx in enumerate(tqdm(idxs, ncols=100)):
         key, label, img = data[idx]
         if len(img.shape) != 3:
             raise ValueError(f"{img.shape}")
@@ -40,12 +62,16 @@ def create_dataset_classify_yolo_pred(data, idxs, data_root, data_type, stage):
             raise ValueError
 
         img_path = os.path.join(data_root, data_type, stage, lbl_txt, f"{i:04d}.jpg")
-        os.makedirs(os.path.dirname(img_path), exist_ok=True)
+        img_dir = os.path.dirname(img_path)
+        if not os.path.exists(img_dir):
+            os.makedirs(os.path.dirname(img_path), exist_ok=False)
 
         cv2.imwrite(img_path, img)
 
 
-def create_dataset_yolov8_finetuning(frame_paths, output_paths, video_ids, data_root, stage):
+def create_dataset_yolov8_finetuning(
+    frame_paths, output_paths, video_ids, data_root, stage
+):
     for frame_path, output_path in zip(frame_paths, output_paths):
         file_name = os.path.basename(frame_path).replace(".jpg", "")
         video_id = file_name.split("_")[0]
