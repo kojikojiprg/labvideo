@@ -14,17 +14,17 @@ from tqdm import tqdm
 from ultralytics import YOLO
 
 
-def train_classify(data_name, data_type, data_version, epochs=100):
+def train_classify(data_name, data_type, split_type, epochs=100):
     model = YOLO("models/yolo/yolov8n-cls.pt")
     model.train(
-        data=f"v{data_version}/{data_name}/{data_type}", epochs=epochs, task="classify"
+        data=f"classify/{split_type}/{data_name}/{data_type}", epochs=epochs, task="classify"
     )
 
     # get trained data dir
     dirs = sorted(glob("runs/classify/train*/"))
     trained_dir = dirs[-1]
 
-    yolo_result_dir = f"runs/v{data_version}/{data_name}/{data_type}"
+    yolo_result_dir = f"runs/classify/{split_type}/{data_name}/{data_type}"
     if os.path.exists(yolo_result_dir):
         dirs = sorted(glob(yolo_result_dir + "-v*/"))
         if len(dirs) == 0:
@@ -32,7 +32,7 @@ def train_classify(data_name, data_type, data_version, epochs=100):
         else:
             last_dir = dirs[-1]
             v_num = int(os.path.dirname(last_dir).split("-")[-1].replace("v", "")) + 1
-        yolo_result_dir = f"runs/{data_name}/{data_type}-v{v_num}"
+        yolo_result_dir = f"runs/classify/{data_name}/{data_type}-v{v_num}"
         shutil.move(trained_dir, yolo_result_dir)
     else:
         shutil.move(trained_dir, yolo_result_dir)
