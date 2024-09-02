@@ -8,21 +8,14 @@ import numpy as np
 from tqdm import tqdm
 
 sys.path.append(".")
-from src.data import (
-    collect_paint_imgs,
-    create_dataset_classify_paint,
-    create_dataset_classify_yolo_pred,
-    extract_yolo_preds,
-)
+from src.data import create_dataset_yolo_classify, extract_yolo_classify
 from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
 
 VER = 1
 
 
-def split_train_test_by_annotation(data, train_ratio, seed=42):
-    np.random.seed(seed)
-
+def split_train_test_by(split_type, data, train_ratio):
     # data ("{video_name}-{label}, label, img")
     data = np.array(data)
     keys = [i[0] for i in data]
@@ -33,7 +26,12 @@ def split_train_test_by_annotation(data, train_ratio, seed=42):
 
     # split data per label
     for label in unique_labels:
-        keys_tmp = np.array([key for key in keys if key.split("-")[1] == label])
+        if split_type == "video":
+            keys_tmp = np.array([key for key in keys if key.split("-")[0] == label])
+        elif split_type == "annotation":
+            keys_tmp = np.array([key for key in keys if key.split("-")[1] == label])
+        else:
+            raise KeyError
 
         # select random
         key_count = len(keys_tmp)
@@ -52,8 +50,10 @@ def split_train_test_by_annotation(data, train_ratio, seed=42):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("dataset_type", type=str, help="'paint' or 'yolo'")
     parser.add_argument("data_type", type=str, help="'label' or 'label_type'")
+    parser.add_argument(
+        "split_type", type=str, help="'random', 'video' or 'annotation'"
+    )
 
     # optional(dataset_type == 'yolo')
     parser.add_argument("-iou", "--th_iou", required=False, type=float, default=0.1)
@@ -70,8 +70,8 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--version", required=False, type=int, default=None)
     args = parser.parse_args()
 
-    dataset_type = args.dataset_type
     data_type = args.data_type
+    split_type = args.data_type
     th_iou = args.th_iou
     th_sec = args.th_sec
 
@@ -80,9 +80,8 @@ if __name__ == "__main__":
     else:
         str_finetuned = ""
 
-    data_name = f"classify_{dataset_type}{str_finetuned}"
-    if dataset_type == "yolo":
-        data_name += f"_sec{th_sec}_iou{th_iou}{str_finetuned}"
+    data_name = f"classify_yolo{str_finetuned}"
+    data_name += f"_sec{th_sec}_iou{th_iou}{str_finetuned}"
     data_root = f"datasets/v{VER}/{data_name}{str_finetuned}"
     os.makedirs(data_root, exist_ok=True)
 
@@ -90,57 +89,44 @@ if __name__ == "__main__":
     if args.create_dataset:
         ann_json = json_handler.load("annotation/annotation.json")
         info_json = json_handler.load("annotation/info.json")
-        if dataset_type == "paint":
-            data = collect_paint_imgs(ann_json, info_json)
-        elif dataset_type == "yolo":
-            video_id_to_name = {
-                data[0]: data[1].split(".")[0]
-                for data in np.loadtxt(
-                    "annotation/annotation.tsv",
-                    str,
-                    delimiter="\t",
-                    skiprows=1,
-                    usecols=[1, 2],
-                )
-                if data[0] != "" and data[1] != ""
-            }
+        video_id_to_name = {
+            data[0]: data[1].split(".")[0]
+            for data in np.loadtxt(
+                "annotation/annotation.tsv",
+                str,
+                delimiter="\t",
+                skiprows=1,
+                usecols=[1, 2],
+            )
+            if data[0] != "" and data[1] != ""
+        }
 
-            data = []
-            for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
-                if video_id not in info_json:
-                    tqdm.write(f"{video_id} is not in info.json")
-                    continue
+        data = []
+        for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
+            if video_id not in info_json:
+                tqdm.write(f"{video_id} is not in info.json")
+                continue
 
-                video_name = video_id_to_name[video_id]
-                data += extract_yolo_preds(
-                    video_name,
-                    th_sec,
-                    th_iou,
-                    data_type,
-                    is_finetuned=args.finetuned_model,
-                )
-        else:
-            raise ValueError
+            video_name = video_id_to_name[video_id]
+            data += extract_yolo_classify(
+                video_name,
+                th_sec,
+                th_iou,
+                data_type,
+                is_finetuned=args.finetuned_model,
+            )
 
-        if dataset_type == "paint":
-            np.random.seed(42)
+        np.random.seed(42)
+        if split_type == "random":
             random_idxs = np.random.choice(np.arange(len(data)), len(data))
-
             train_length = int(len(data) * 0.7)
             train_idxs = random_idxs[:train_length]
             test_idxs = random_idxs[train_length:]
-            create_dataset_classify_paint(
-                data, train_idxs, data_root, data_type, "train"
-            )
-            create_dataset_classify_paint(data, test_idxs, data_root, data_type, "test")
-        elif dataset_type == "yolo":
-            train_idxs, test_idxs = split_train_test_by_annotation(data, 0.7)
-            create_dataset_classify_yolo_pred(
-                data, train_idxs, data_root, data_type, "train"
-            )
-            create_dataset_classify_yolo_pred(
-                data, test_idxs, data_root, data_type, "test"
-            )
+        else:
+            train_idxs, test_idxs = split_train_test_by(split_type, data, 0.7)
+
+        create_dataset_yolo_classify(data, train_idxs, data_root, data_type, "train")
+        create_dataset_yolo_classify(data, test_idxs, data_root, data_type, "test")
 
     if args.train:
         # train YOLO
