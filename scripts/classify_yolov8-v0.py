@@ -8,7 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 sys.path.append(".")
-from src.data import create_dataset_classify_yolo_pred, extract_yolo_classify
+from src.data import create_dataset_yolo_classify, extract_yolo_classify
 from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
 
@@ -45,7 +45,6 @@ if __name__ == "__main__":
     data_name = f"classify_yolo{str_finetuned}"
     data_name += f"_sec{th_sec}_iou{th_iou}{str_finetuned}"
     data_root = f"datasets/v{VER}/{data_name}{str_finetuned}"
-    os.makedirs(data_root, exist_ok=False)
 
     # create dataset
     if args.create_dataset:
@@ -85,14 +84,12 @@ if __name__ == "__main__":
         train_idxs = random_idxs[:train_length]
         test_idxs = random_idxs[train_length:]
 
-        create_dataset_classify_yolo_pred(
-            data, train_idxs, data_root, data_type, "train"
-        )
-        create_dataset_classify_yolo_pred(data, test_idxs, data_root, data_type, "test")
+        create_dataset_yolo_classify(data, train_idxs, data_root, data_type, "train")
+        create_dataset_yolo_classify(data, test_idxs, data_root, data_type, "test")
 
     if args.train:
         # train YOLO
-        yolo_result_dir = train_classify(data_name, data_type)
+        yolo_result_dir = train_classify(data_name, data_type, VER)
     else:
         # only prediction
         v_num = args.version

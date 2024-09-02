@@ -14,9 +14,11 @@ from tqdm import tqdm
 from ultralytics import YOLO
 
 
-def train_classify(data_name, data_type, data_version):
+def train_classify(data_name, data_type, data_version, epochs=100):
     model = YOLO("models/yolo/yolov8n-cls.pt")
-    model.train(data=f"v{data_version}/{data_name}/{data_type}", epochs=100, task="classify")
+    model.train(
+        data=f"v{data_version}/{data_name}/{data_type}", epochs=epochs, task="classify"
+    )
 
     # get trained data dir
     dirs = sorted(glob("runs/classify/train*/"))
