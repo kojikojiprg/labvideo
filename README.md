@@ -108,8 +108,13 @@ positional arguments:
 - ```data_type```: 'label' or 'label_type'
   - 'label': A11~C42
   - 'label_type': A~C
-  - 'anomaly'(dataset_type==yolo): 0(異常なし), 1(異常あり)
   dataset==yoloの時、Paintの±th_sec秒以内でIoU>th_iouのデータを異常データ、それ以外を異常なしデータとする
+
+- ```split_type```: 'random', 'annotation' or 'video'
+  学習データとテストデータの分け方
+  - 'random': 全データでランダムに分割
+  - 'anottation': アノテーションごとに分割
+  - 'video': 動画ごとに分割
 
 options:
 - ```-cd, --create_dataset```: データセットを作成する
@@ -117,7 +122,3 @@ options:
 - ```-v, --version```: テストバージョン(--train を指定したときは無効)
 - ```th_sec```(dataset==yolo): 異常とするYOLOの物体認識結果のPaintとの発生時間の閾値
 - ```th_iou```(dataset==yolo): 異常とするYOLOの物体認識結果のPaintとのIoUの閾値
-
-##### アップデート履歴
-- v0: ランダムに学習データとテストデータを分類
-- v1: 動画毎に学習データとテストデータを分類 (データリークを防ぐため)
