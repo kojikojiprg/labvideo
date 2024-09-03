@@ -110,11 +110,10 @@ positional arguments:
   - 'label_type': A~C
   dataset==yoloの時、Paintの±th_sec秒以内でIoU>th_iouのデータを異常データ、それ以外を異常なしデータとする
 
-- ```split_type```: 'random', 'annotation' or 'video'
+- ```split_type```: 'random' or 'video'
   学習データとテストデータの分け方
   - 'random': 全データでランダムに分割
-  - 'anottation': アノテーションごとに分割
-  - 'video': 動画ごとに分割
+  - 'video': 動画ごとに分割(yolov8_fintuning.pyのデータセットと同じように分割)
 
 options:
 - ```-cd, --create_dataset```: データセットを作成する

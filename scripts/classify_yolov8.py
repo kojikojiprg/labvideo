@@ -13,44 +13,42 @@ from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
 
 
-def split_train_test_by(split_type, data, train_ratio):
+def split_train_test_by_video(data, video_id_to_name):
     # data ("{video_name}-{label}, label, img")
-    data = np.array(data)
-    keys = [i[0] for i in data]
-    unique_labels = np.unique([i[1] for i in data])
 
-    train_data_idxs = []
-    test_data_idxs = []
+    train_video_ids = np.loadtxt(
+        "datasets/yolov8_finetuning/summary_dataset_train.tsv",
+        dtype=str,
+        delimiter="\t",
+        skiprows=1,
+    )[:-1, 0]
+    test_video_ids = np.loadtxt(
+        "datasets/yolov8_finetuning/summary_dataset_test.tsv",
+        dtype=str,
+        delimiter="\t",
+        skiprows=1,
+    )[:-1, 0]
+    train_video_names = [video_id_to_name[_id] for _id in train_video_ids]
+    test_video_names = [video_id_to_name[_id] for _id in test_video_ids]
 
     # split data per label
-    for label in unique_labels:
-        if split_type == "video":
-            keys_tmp = np.array([key for key in keys if key.split("-")[0] == label])
-        elif split_type == "annotation":
-            keys_tmp = np.array([key for key in keys if key.split("-")[1] == label])
-        else:
-            raise KeyError
+    train_idxs = []
+    test_idxs = []
+    for i, d in enumerate(data):
+        video_name = d[0].split("-")[0]
+        if video_name in train_video_names:
+            train_idxs.append(i)
+        elif video_name in test_video_names:
+            test_idxs.append(i)
 
-        # select random
-        key_count = len(keys_tmp)
-        random_idxs = np.random.choice(np.arange(key_count), key_count)
-        train_length = int(key_count * train_ratio)
-        train_key_idxs = random_idxs[:train_length]
-        test_key_idxs = random_idxs[train_length:]
-        train_keys = keys_tmp[train_key_idxs]
-        test_keys = keys_tmp[test_key_idxs]
-
-        train_data_idxs.extend(np.where(data.T[0] in train_keys))
-        test_data_idxs.extend(np.where(data.T[0] in test_keys))
-
-    return train_data_idxs, test_data_idxs
+    return train_idxs, test_idxs
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_type", type=str, help="'label' or 'label_type'")
     parser.add_argument(
-        "split_type", type=str, help="'random', 'video' or 'annotation'"
+        "split_type", type=str, help="'random' or 'video'"
     )
 
     # optional(dataset_type == 'yolo')
@@ -121,7 +119,7 @@ if __name__ == "__main__":
             train_idxs = random_idxs[:train_length]
             test_idxs = random_idxs[train_length:]
         else:
-            train_idxs, test_idxs = split_train_test_by(split_type, data, 0.7)
+            train_idxs, test_idxs = split_train_test_by_video(data, video_id_to_name)
 
         create_dataset_yolo_classify(data, train_idxs, data_root, data_type, "train")
         create_dataset_yolo_classify(data, test_idxs, data_root, data_type, "test")
@@ -174,3 +172,5 @@ if __name__ == "__main__":
         img_name = f"true-{label}_pred-{pred_label}_" + img_name
         move_path = os.path.join(missed_imgs_dir, img_name)
         shutil.copyfile(path, move_path)
+
+    print("complete")
