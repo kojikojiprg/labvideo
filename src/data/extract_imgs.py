@@ -51,13 +51,13 @@ def extract_yolo_classify(video_name, ann_json, th_sec, th_iou, is_finetuned):
         str_finetuned = ""
 
     # get data
-    annotation_lst = np.loadtxt(
+    ann_lst = np.loadtxt(
         os.path.join(f"out/{video_name}/{video_name}_ann.tsv"),
         str,
         delimiter="\t",
         skiprows=1,
     )
-    if len(annotation_lst) == 0:
+    if len(ann_lst) == 0:
         return []
     yolo_preds = np.loadtxt(
         os.path.join(f"out/{video_name}/{video_name}_det{str_finetuned}.tsv"),
@@ -68,10 +68,12 @@ def extract_yolo_classify(video_name, ann_json, th_sec, th_iou, is_finetuned):
     cap = video.Capture(f"video/{video_name}.mp4")
     th_n_frame = np.ceil(cap.fps * th_sec).astype(int)
 
-    annotation_n_frames = [np.ceil(float(ann["time"]) * cap.fps).astype(int) for ann in ann_json]
+    ann_n_frames = [
+        np.ceil(float(ann["time"]) * cap.fps).astype(int) for ann in ann_json
+    ]
 
     data = []
-    for n_frame in tqdm(annotation_n_frames, ncols=100, desc=video_name):
+    for n_frame in tqdm(ann_n_frames, ncols=100, desc=video_name):
         ret, frame = cap.read(n_frame)
         if not ret:
             print(f"frame not loaded from n_frame {n_frame} in {video_name}.mp4")
@@ -87,9 +89,8 @@ def extract_yolo_classify(video_name, ann_json, th_sec, th_iou, is_finetuned):
         if len(yolo_preds_tmp) == 0:
             continue
 
-        ann_lst = annotation_lst[annotation_lst.T[0].astype(int) == n_frame]
-
-        for ann in ann_lst:
+        ann_lst_tmp = ann_lst[ann_lst.T[0].astype(int) == n_frame]
+        for ann in ann_lst_tmp:
             paint_bbox = ann[1:5].astype(np.float32)
 
             # extract yolo preds greater than th_iou
@@ -112,20 +113,20 @@ def extract_yolo_classify(video_name, ann_json, th_sec, th_iou, is_finetuned):
     return data
 
 
-def extract_yolo_anomaly(video_name, th_sec, th_iou, data_type, is_finetuned):
+def extract_yolo_anomaly(video_name, ann_json, th_sec, th_iou, is_finetuned):
     if is_finetuned:
         str_finetuned = "_finetuned"
     else:
         str_finetuned = ""
 
     # get data
-    annotation_lst = np.loadtxt(
+    ann_lst = np.loadtxt(
         os.path.join(f"out/{video_name}/{video_name}_ann.tsv"),
         str,
         delimiter="\t",
         skiprows=1,
     )
-    if len(annotation_lst) == 0:
+    if len(ann_lst) == 0:
         return []
     yolo_preds = np.loadtxt(
         os.path.join(f"out/{video_name}/{video_name}_det{str_finetuned}.tsv"),
@@ -136,12 +137,12 @@ def extract_yolo_anomaly(video_name, th_sec, th_iou, data_type, is_finetuned):
     cap = video.Capture(f"video/{video_name}.mp4")
     th_n_frame = np.ceil(cap.fps * th_sec).astype(int)
 
-    # create temporary folder
-    # img_tmp_dir = "tmp/"
-    # os.makedirs(img_tmp_dir, exist_ok=False)
+    ann_n_frames = [
+        np.ceil(float(ann["time"]) * cap.fps).astype(int) for ann in ann_json
+    ]
 
     data = []
-    for n_frame in tqdm(range(cap.frame_count), ncols=100, desc=video_name):
+    for n_frame in tqdm(ann_n_frames, ncols=100, desc=video_name):
         ret, frame = cap.read(n_frame)
         if not ret:
             print(f"frame not loaded from n_frame {n_frame} in {video_name}.mp4")
@@ -157,39 +158,25 @@ def extract_yolo_anomaly(video_name, th_sec, th_iou, data_type, is_finetuned):
         if len(yolo_preds_tmp) == 0:
             continue
 
-        ann_lst = annotation_lst[annotation_lst.T[0].astype(int) == n_frame]
-        if len(ann_lst) == 0:
-            # append normal data
-            key = f"{video_name}-0"
-            for pred in yolo_preds_tmp:
-                x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
-                img = frame[y1:y2, x1:x2]
-                data.append((key, 0, img))
-            continue
-
-        for ann in ann_lst:
+        ann_lst_tmp = ann_lst[ann_lst.T[0].astype(int) == n_frame]
+        for ann in ann_lst_tmp:
             paint_bbox = ann[1:5].astype(np.float32)
 
             # extract yolo preds greater than th_iou
             ious = calc_ious(paint_bbox, yolo_preds_tmp[:, 1:5].astype(np.float32))
-            yolo_preds_anomaly = yolo_preds_tmp[ious >= th_iou]
-            yolo_preds_normal = yolo_preds_tmp[ious < th_iou]
+            yolo_preds_high_iou = yolo_preds_tmp[ious >= th_iou]
+            yolo_preds_low_iou = yolo_preds_tmp[ious < th_iou]
 
-            label = ann[8]
-            try:
-                label = label.split("(")[1].replace(")", "")  # extract within bracket
-            except IndexError:
-                print("error label", video_name, label)
-                continue
-
-            key = f"{video_name}-1"
-            for pred in yolo_preds_anomaly:
+            for pred in yolo_preds_high_iou:
+                # anomaly data
+                key = f"{video_name}-1"
                 x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
                 data.append((key, 1, frame[y1:y2, x1:x2]))
-            key = f"{video_name}-0"
-            for pred in yolo_preds_normal:
+            for pred in yolo_preds_low_iou:
+                # normal data
+                key = f"{video_name}-0"
                 x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
-                data.append((key, 0, frame[y1:y2, x1:x2]))
+                data.append((key, frame[y1:y2, x1:x2]))
 
     del cap
     return data

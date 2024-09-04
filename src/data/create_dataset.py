@@ -21,7 +21,7 @@ def create_dataset_classify_paint(data, idxs, data_root, data_type, stage):
         shutil.copyfile(os.path.join("annotation/images", img_name), img_path)
 
 
-def create_dataset_yolo_classify(data, idxs, data_root, data_type, stage):
+def create_dataset_classify(data, idxs, data_root, data_type, stage):
     for i, idx in enumerate(tqdm(idxs, ncols=100)):
         key, label, img = data[idx]
         if len(img.shape) != 3:
@@ -44,24 +44,13 @@ def create_dataset_yolo_classify(data, idxs, data_root, data_type, stage):
         cv2.imwrite(img_path, img)
 
 
-def create_dataset_yolo_anomaly(data, idxs, data_root, data_type, stage):
+def create_dataset_anomaly(data, idxs, data_root, stage):
     for i, idx in enumerate(tqdm(idxs, ncols=100)):
         key, label, img = data[idx]
         if len(img.shape) != 3:
             raise ValueError(f"{img.shape}")
 
-        if data_type == "label":
-            if "_" in label:
-                label = label.split("_")[0]  # delete surfix
-            lbl_txt = label  # A11~C42
-        elif data_type == "label_type":
-            lbl_txt = label[0]  # only A, B, C
-        elif data_type == "anomaly":
-            lbl_txt = label[0]  # 0, 1
-        else:
-            raise ValueError
-
-        img_path = os.path.join(data_root, data_type, stage, lbl_txt, f"{i:04d}.jpg")
+        img_path = os.path.join(data_root, stage, str(label), f"{i:04d}.jpg")
         img_dir = os.path.dirname(img_path)
         if not os.path.exists(img_dir):
             os.makedirs(os.path.dirname(img_path), exist_ok=False)
