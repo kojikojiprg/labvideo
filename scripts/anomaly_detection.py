@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
     data_name = f"anomaly_yolo{str_finetuned}"
     data_name += f"_sec{th_sec}_iou{th_iou}{str_finetuned}"
-    data_root = f"datasets/anomaly/{split_type}/{data_name}{str_finetuned}"
+    data_root = f"datasets/classify/{split_type}/{data_name}"
     os.makedirs(data_root, exist_ok=True)
 
     # create dataset
@@ -133,24 +133,8 @@ if __name__ == "__main__":
             yolo_result_dir += f"-v{v_num}"
 
     # prediction
-    train_paths = glob(
-        os.path.join(
-            f"datasets/anomaly/{split_type}/{data_name}{str_finetuned}",
-            data_type,
-            "train",
-            "**",
-            "*.jpg",
-        )
-    )
-    test_paths = glob(
-        os.path.join(
-            f"datasets/anomaly/{split_type}/{data_name}{str_finetuned}",
-            data_type,
-            "test",
-            "**",
-            "*.jpg",
-        )
-    )
+    train_paths = glob(os.path.join(data_root, data_type, "train", "**", "*.jpg"))
+    test_paths = glob(os.path.join(data_root, data_type, "test", "**", "*.jpg"))
 
     results_train, missed_img_path_train = pred_anomaly(
         train_paths, "train", yolo_result_dir
