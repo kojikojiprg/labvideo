@@ -14,7 +14,7 @@ from tqdm import tqdm
 from ultralytics import YOLO
 
 
-def train_classify(data_name, data_type, split_type, str_finetuned, epochs=100):
+def train_classify(data_name, data_type, split_type, epochs=100):
     model = YOLO("models/yolo/yolov8n-cls.pt")
     model.train(
         data=f"classify/{split_type}/{data_name}/{data_type}", epochs=epochs, task="classify"
