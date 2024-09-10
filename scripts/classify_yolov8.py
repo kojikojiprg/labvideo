@@ -8,7 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 sys.path.append(".")
-from src.data import create_dataset_classify, extract_yolo_classify
+from src.data import create_dataset_classify, extract_images_classify_dataset
 from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
 
@@ -102,7 +102,7 @@ if __name__ == "__main__":
                 continue
 
             video_name = video_id_to_name[video_id]
-            data += extract_yolo_classify(
+            data += extract_images_classify_dataset(
                 video_name,
                 ann_lst,
                 th_sec,

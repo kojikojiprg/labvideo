@@ -8,7 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 sys.path.append(".")
-from src.data import create_dataset_anomaly, extract_yolo_anomaly
+from src.data import create_dataset_anomaly, extract_images_anomaly_dataset
 from src.model.anomaly import pred_anomaly, train_anomaly
 from src.utils import json_handler
 
@@ -46,12 +46,11 @@ def split_train_test_by_video(data, video_id_to_name):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_type", type=str, help="'label' or 'label_type'")
     parser.add_argument("split_type", type=str, help="'random' or 'video'")
 
     # optional(dataset_type == 'yolo')
     parser.add_argument("-iou", "--th_iou", required=False, type=float, default=0.1)
-    parser.add_argument("-sec", "--th_sec", required=False, type=float, default=1.0)
+    parser.add_argument("-sec", "--th_sec", required=False, type=float, default=0.5)
 
     # optional
     parser.add_argument("-f", "--finetuned_model", action="store_true")
@@ -64,7 +63,6 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--version", required=False, type=int, default=None)
     args = parser.parse_args()
 
-    data_type = args.data_type
     split_type = args.split_type
     th_iou = args.th_iou
     th_sec = args.th_sec
@@ -74,9 +72,8 @@ if __name__ == "__main__":
     else:
         str_finetuned = ""
 
-    data_name = f"anomaly_yolo{str_finetuned}"
-    data_name += f"_sec{th_sec}_iou{th_iou}{str_finetuned}"
-    data_root = f"datasets/classify/{split_type}/{data_name}"
+    data_name = f"anomaly_sec{th_sec}_iou{th_iou}{str_finetuned}"
+    data_root = f"datasets/anomaly/{data_name}"
     os.makedirs(data_root, exist_ok=True)
 
     # create dataset
@@ -102,9 +99,10 @@ if __name__ == "__main__":
                 continue
 
             video_name = video_id_to_name[video_id]
-            data += extract_yolo_anomaly(
+            data += extract_images_anomaly_dataset(
                 video_name,
                 ann_lst,
+                data_root,
                 th_sec,
                 th_iou,
                 is_finetuned=args.finetuned_model,
@@ -124,17 +122,17 @@ if __name__ == "__main__":
 
     if args.train:
         # train YOLO
-        yolo_result_dir = train_anomaly(data_name, data_type, split_type)
+        yolo_result_dir = train_anomaly(data_name, split_type)
     else:
         # only prediction
         v_num = args.version
-        yolo_result_dir = f"runs/split_type/{data_name}/{data_type}{str_finetuned}"
+        yolo_result_dir = f"runs/{split_type}/{data_name}/{str_finetuned}"
         if v_num is not None:
             yolo_result_dir += f"-v{v_num}"
 
     # prediction
-    train_paths = glob(os.path.join(data_root, data_type, "train", "**", "*.jpg"))
-    test_paths = glob(os.path.join(data_root, data_type, "test", "**", "*.jpg"))
+    train_paths = glob(os.path.join(data_root, "train", "**", "*.jpg"))
+    test_paths = glob(os.path.join(data_root, "test", "**", "*.jpg"))
 
     results_train, missed_img_path_train = pred_anomaly(
         train_paths, "train", yolo_result_dir

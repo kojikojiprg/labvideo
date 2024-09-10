@@ -8,7 +8,7 @@ from tqdm import tqdm
 from src.utils import video
 
 
-def collect_paint_imgs(ann_json, info_json):
+def collect_annotation_paint_images(ann_json, info_json):
     image_paths = sorted(glob(os.path.join("annotation/images", "*.jpg")))
     data = []
     for image_path in tqdm(image_paths, ncols=100):
@@ -44,7 +44,7 @@ def collect_paint_imgs(ann_json, info_json):
     return data
 
 
-def extract_yolo_classify(video_name, ann_json, th_sec, th_iou, is_finetuned):
+def extract_images_classify_dataset(video_name, ann_json, th_sec, th_iou, is_finetuned):
     if is_finetuned:
         str_finetuned = "_finetuned"
     else:
@@ -113,13 +113,18 @@ def extract_yolo_classify(video_name, ann_json, th_sec, th_iou, is_finetuned):
     return data
 
 
-def extract_yolo_anomaly(video_name, ann_json, th_sec, th_iou, is_finetuned):
+def extract_images_anomaly_dataset(
+    video_name, ann_json, data_root, th_sec, th_iou, is_finetuned
+):
+    if os.path.exists(f"{data_root}/images/{video_name}"):
+        return _collect_anomaly_dataset(video_name, data_root)
+
     if is_finetuned:
         str_finetuned = "_finetuned"
     else:
         str_finetuned = ""
 
-    # get data
+    # load annotation
     ann_lst = np.loadtxt(
         os.path.join(f"out/{video_name}/{video_name}_ann.tsv"),
         str,
@@ -128,20 +133,22 @@ def extract_yolo_anomaly(video_name, ann_json, th_sec, th_iou, is_finetuned):
     )
     if len(ann_lst) == 0:
         return []
+
+    # load yolo detection results
     yolo_preds = np.loadtxt(
         os.path.join(f"out/{video_name}/{video_name}_det{str_finetuned}.tsv"),
         str,
         delimiter="\t",
         skiprows=1,
     )
+
+    # load video
     cap = video.Capture(f"video/{video_name}.mp4")
     th_n_frame = np.ceil(cap.fps * th_sec).astype(int)
 
     ann_n_frames = [
         np.ceil(float(ann["time"]) * cap.fps).astype(int) for ann in ann_json
     ]
-
-    data = []
     for n_frame in tqdm(ann_n_frames, ncols=100, desc=video_name):
         ret, frame = cap.read(n_frame)
         if not ret:
@@ -160,6 +167,7 @@ def extract_yolo_anomaly(video_name, ann_json, th_sec, th_iou, is_finetuned):
 
         ann_lst_tmp = ann_lst[ann_lst.T[0].astype(int) == n_frame]
         for ann in ann_lst_tmp:
+            aid = ann[0]
             paint_bbox = ann[1:5].astype(np.float32)
 
             # extract yolo preds greater than th_iou
@@ -167,18 +175,39 @@ def extract_yolo_anomaly(video_name, ann_json, th_sec, th_iou, is_finetuned):
             yolo_preds_high_iou = yolo_preds_tmp[ious >= th_iou]
             yolo_preds_low_iou = yolo_preds_tmp[ious < th_iou]
 
-            for pred in yolo_preds_high_iou:
+            img_dir = f"{data_root}/images/{video_name}/1/"
+            os.makedirs(img_dir, exist_ok=True)
+            for i, pred in enumerate(yolo_preds_high_iou):
                 # anomaly data
-                key = f"{video_name}-1"
                 x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
-                data.append((key, 1, frame[y1:y2, x1:x2]))
-            for pred in yolo_preds_low_iou:
-                # normal data
-                key = f"{video_name}-0"
-                x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
-                data.append((key, frame[y1:y2, x1:x2]))
+                img = frame[y1:y2, x1:x2]
+                img_path = f"{img_dir}/{video_name}_{aid}_{i}.jpg"
+                cv2.imwrite(img_path, img)
 
-    del cap
+            img_dir = f"{data_root}/images/{video_name}/0/"
+            os.makedirs(img_dir, exist_ok=True)
+            for i, pred in enumerate(yolo_preds_low_iou):
+                # normal data
+                x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
+                img = frame[y1:y2, x1:x2]
+                img_path = f"{img_dir}/{video_name}_{aid}_{i}.jpg"
+                cv2.imwrite(img_path, img)
+
+    return _collect_anomaly_dataset(video_name, data_root)
+
+
+def _collect_anomaly_dataset(video_name, data_root):
+    # load image paths
+    data = []
+    anomaly_img_paths = sorted(glob(f"{data_root}/images/{video_name}/1/*.jpg"))
+    for img_path in anomaly_img_paths:
+        key = f"{video_name}-1"
+        data.append((key, 1, img_path))
+    normal_img_paths = sorted(glob(f"{data_root}/images/{video_name}/0/*.jpg"))
+    for img_path in normal_img_paths:
+        key = f"{video_name}-0"
+        data.append((key, 0, img_path))
+
     return data
 
 

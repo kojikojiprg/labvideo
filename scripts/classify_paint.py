@@ -7,7 +7,7 @@ from glob import glob
 import numpy as np
 
 sys.path.append(".")
-from src.data import collect_paint_imgs, create_dataset_classify_paint
+from src.data import collect_annotation_paint_images, create_dataset_classify_paint
 from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
 
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     if args.create_dataset:
         ann_json = json_handler.load("annotation/annotation.json")
         info_json = json_handler.load("annotation/info.json")
-        data = collect_paint_imgs(ann_json, info_json)
+        data = collect_annotation_paint_images(ann_json, info_json)
         np.random.seed(42)
         random_idxs = np.random.choice(np.arange(len(data)), len(data))
 
