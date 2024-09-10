@@ -50,7 +50,7 @@ def extract_images_classify_dataset(video_name, ann_json, th_sec, th_iou, is_fin
     else:
         str_finetuned = ""
 
-    # get data
+    # load annotation
     ann_lst = np.loadtxt(
         os.path.join(f"out/{video_name}/{video_name}_ann.tsv"),
         str,
@@ -59,19 +59,22 @@ def extract_images_classify_dataset(video_name, ann_json, th_sec, th_iou, is_fin
     )
     if len(ann_lst) == 0:
         return []
+
+    # load yolo detection result
     yolo_preds = np.loadtxt(
         os.path.join(f"out/{video_name}/{video_name}_det{str_finetuned}.tsv"),
         str,
         delimiter="\t",
         skiprows=1,
     )
+
+    # load video
     cap = video.Capture(f"video/{video_name}.mp4")
     th_n_frame = np.ceil(cap.fps * th_sec).astype(int)
 
     ann_n_frames = [
         np.ceil(float(ann["time"]) * cap.fps).astype(int) for ann in ann_json
     ]
-
     data = []
     for n_frame in tqdm(ann_n_frames, ncols=100, desc=video_name):
         ret, frame = cap.read(n_frame)
@@ -117,6 +120,7 @@ def extract_images_anomaly_dataset(
     video_name, ann_json, data_root, th_sec, th_iou, is_finetuned
 ):
     if os.path.exists(f"{data_root}/images/{video_name}"):
+        # skip creating dataset
         return _collect_anomaly_dataset(video_name, data_root)
 
     if is_finetuned:
@@ -192,6 +196,8 @@ def extract_images_anomaly_dataset(
                 img = frame[y1:y2, x1:x2]
                 img_path = f"{img_dir}/{video_name}_{aid}_{i}.jpg"
                 cv2.imwrite(img_path, img)
+
+    del cap
 
     return _collect_anomaly_dataset(video_name, data_root)
 
