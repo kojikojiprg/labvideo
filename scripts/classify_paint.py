@@ -7,7 +7,7 @@ from glob import glob
 import numpy as np
 
 sys.path.append(".")
-from src.data import collect_annotation_paint_images, create_dataset_classify_paint
+from src.data import collect_annotation_paint_images, create_classify_paint_dataset
 from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
 
@@ -43,8 +43,8 @@ if __name__ == "__main__":
         train_idxs = random_idxs[:train_length]
         test_idxs = random_idxs[train_length:]
 
-        create_dataset_classify_paint(data, train_idxs, data_root, data_type, "train")
-        create_dataset_classify_paint(data, test_idxs, data_root, data_type, "test")
+        create_classify_paint_dataset(data, train_idxs, data_root, data_type, "train")
+        create_classify_paint_dataset(data, test_idxs, data_root, data_type, "test")
 
     if args.train:
         # train YOLO

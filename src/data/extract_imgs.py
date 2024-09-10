@@ -121,7 +121,7 @@ def extract_images_anomaly_dataset(
 ):
     if os.path.exists(f"{data_root}/images/{video_name}"):
         # skip creating dataset
-        return _collect_anomaly_dataset(video_name, data_root)
+        return collect_anomaly_dataset(video_name, data_root)
 
     if is_finetuned:
         str_finetuned = "_finetuned"
@@ -199,10 +199,10 @@ def extract_images_anomaly_dataset(
 
     del cap
 
-    return _collect_anomaly_dataset(video_name, data_root)
+    return collect_anomaly_dataset(video_name, data_root)
 
 
-def _collect_anomaly_dataset(video_name, data_root):
+def collect_anomaly_dataset(video_name, data_root):
     # load image paths
     data = []
     anomaly_img_paths = sorted(glob(f"{data_root}/images/{video_name}/1/*.jpg"))

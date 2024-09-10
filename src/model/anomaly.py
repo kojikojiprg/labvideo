@@ -21,6 +21,11 @@ def imread(img_path, img_size):
     img = (img / 255) * 2 - 1
     return img
 
+def create_dataset_anomaly(data, idxs, data_root, stage):
+    for i, idx in enumerate(tqdm(idxs, ncols=100)):
+        key, label, img_path = data[idx]
+        img = cv2.imread(img_path)
+
 
 def train_anomaly(data_name, split_type, img_size=(32, 32)):
     model = svm.OneClassSVM(nu=0.1, kernel="rbf", gamma=0.1)

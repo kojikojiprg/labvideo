@@ -8,7 +8,7 @@ import pandas as pd
 from ultralytics import YOLO
 
 sys.path.append(".")
-from src.data import create_dataset_yolov8_finetuning
+from src.data import create_yolov8_finetuning_dataset
 from src.utils import yaml_handler
 
 
@@ -98,10 +98,10 @@ if __name__ == "__main__":
         train_video_ids = video_ids[train_idxs]
         test_video_ids = video_ids[test_idxs]
 
-        create_dataset_yolov8_finetuning(
+        create_yolov8_finetuning_dataset(
             frame_paths, output_paths, train_video_ids, data_root, "train"
         )
-        create_dataset_yolov8_finetuning(
+        create_yolov8_finetuning_dataset(
             frame_paths, output_paths, test_video_ids, data_root, "test"
         )
 

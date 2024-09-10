@@ -8,7 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 sys.path.append(".")
-from src.data import create_dataset_classify, extract_images_classify_dataset
+from src.data import create_classify_dataset, extract_images_classify_dataset
 from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
 
@@ -119,8 +119,8 @@ if __name__ == "__main__":
         else:
             train_idxs, test_idxs = split_train_test_by_video(data, video_id_to_name)
 
-        create_dataset_classify(data, train_idxs, data_root, data_type, "train")
-        create_dataset_classify(data, test_idxs, data_root, data_type, "test")
+        create_classify_dataset(data, train_idxs, data_root, data_type, "train")
+        create_classify_dataset(data, test_idxs, data_root, data_type, "test")
 
     if args.train:
         # train YOLO
