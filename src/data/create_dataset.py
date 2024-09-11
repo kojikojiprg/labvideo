@@ -49,7 +49,7 @@ def create_anomaly_dataset(data, idxs, data_root, stage):
     data = np.array(data, dtype=str)
     data = data[idxs]
     path = f"{data_root}/{stage}.tsv"
-    np.savetxt(path, data, delimiter="\t")
+    np.savetxt(path, data, delimiter="\t", fmt="%s")
 
 
 def create_yolov8_finetuning_dataset(

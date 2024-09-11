@@ -117,16 +117,17 @@ def extract_images_classify_dataset(video_name, ann_json, th_sec, th_iou, is_fin
 
 
 def extract_images_anomaly_dataset(
-    video_name, ann_json, data_root, th_sec, th_iou, is_finetuned
+    video_name, ann_json, th_sec, th_iou, is_finetuned, img_dir
 ):
-    if os.path.exists(f"{data_root}/images/{video_name}"):
-        # skip creating dataset
-        return collect_anomaly_dataset(video_name, data_root)
-
     if is_finetuned:
         str_finetuned = "_finetuned"
     else:
         str_finetuned = ""
+
+    img_dir = f"{img_dir}/{video_name}"
+    if os.path.exists(img_dir):
+        # skip creating dataset
+        return collect_anomaly_dataset(video_name, img_dir)
 
     # load annotation
     ann_lst = np.loadtxt(
@@ -179,37 +180,37 @@ def extract_images_anomaly_dataset(
             yolo_preds_high_iou = yolo_preds_tmp[ious >= th_iou]
             yolo_preds_low_iou = yolo_preds_tmp[ious < th_iou]
 
-            img_dir = f"{data_root}/images/{video_name}/1/"
-            os.makedirs(img_dir, exist_ok=True)
+            img_dir_anomaly = f"{img_dir}/1/"
+            os.makedirs(img_dir_anomaly, exist_ok=True)
             for i, pred in enumerate(yolo_preds_high_iou):
                 # anomaly data
                 x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
                 img = frame[y1:y2, x1:x2]
-                img_path = f"{img_dir}/{video_name}_{aid}_{i}.jpg"
+                img_path = f"{img_dir_anomaly}/{video_name}_{aid}_{i}.jpg"
                 cv2.imwrite(img_path, img)
 
-            img_dir = f"{data_root}/images/{video_name}/0/"
-            os.makedirs(img_dir, exist_ok=True)
+            img_dir_normal = f"{img_dir}/0/"
+            os.makedirs(img_dir_normal, exist_ok=True)
             for i, pred in enumerate(yolo_preds_low_iou):
                 # normal data
                 x1, y1, x2, y2 = pred[1:5].astype(float).astype(int)
                 img = frame[y1:y2, x1:x2]
-                img_path = f"{img_dir}/{video_name}_{aid}_{i}.jpg"
+                img_path = f"{img_dir_normal}/{video_name}_{aid}_{i}.jpg"
                 cv2.imwrite(img_path, img)
 
     del cap
 
-    return collect_anomaly_dataset(video_name, data_root)
+    return collect_anomaly_dataset(video_name, img_dir)
 
 
-def collect_anomaly_dataset(video_name, data_root):
+def collect_anomaly_dataset(video_name, img_dir):
     # load image paths
     data = []
-    anomaly_img_paths = sorted(glob(f"{data_root}/images/{video_name}/1/*.jpg"))
+    anomaly_img_paths = sorted(glob(f"{img_dir}/1/*.jpg"))
     for img_path in anomaly_img_paths:
         key = f"{video_name}-1"
         data.append((key, 1, img_path))
-    normal_img_paths = sorted(glob(f"{data_root}/images/{video_name}/0/*.jpg"))
+    normal_img_paths = sorted(glob(f"{img_dir}/0/*.jpg"))
     for img_path in normal_img_paths:
         key = f"{video_name}-0"
         data.append((key, 0, img_path))
