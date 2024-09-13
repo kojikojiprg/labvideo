@@ -21,19 +21,18 @@ def imread(img_path, img_size):
     img = (img / 255) * 2 - 1
     return img
 
-def create_dataset_anomaly(data, idxs, data_root, stage):
-    for i, idx in enumerate(tqdm(idxs, ncols=100)):
-        key, label, img_path = data[idx]
-        img = cv2.imread(img_path)
-
 
 def train_anomaly(data_name, split_type, img_size=(32, 32)):
-    model = svm.OneClassSVM(nu=0.1, kernel="rbf", gamma=0.1)
-
     data_root = f"datasets/anomaly/{split_type}/{data_name}"
-    img_paths = sorted(glob(f"{data_root}/train/0/*.jpg"))
-    normal_imgs = [imread(path, img_size) for path in img_paths]
-    model.fit(np.array(normal_imgs))
+    dataset_path = f"{data_root}/train.tsv"
+    data = np.loadtxt(dataset_path, dtype=str, delimiter="\t")
+    normal_img_paths = [d[2] for d in data if int(d[1]) == 0]
+    normal_imgs = [imread(path, img_size) for path in normal_img_paths]
+    X = np.array(normal_imgs)
+    X = X.reshape(X.shape[0], -1)
+
+    model = svm.OneClassSVM(nu=0.1, kernel="rbf", gamma=0.1)
+    model.fit(X)
 
     result_dir = f"runs/anomaly/{split_type}/{data_name}"
     if os.path.exists(result_dir):
@@ -53,22 +52,24 @@ def train_anomaly(data_name, split_type, img_size=(32, 32)):
     return result_dir
 
 
-def pred_anomaly(img_paths, stage, result_dir):
+def pred_anomaly(data_name, split_type, stage, result_dir, img_size=(32, 32)):
+    data_root = f"datasets/anomaly/{split_type}/{data_name}"
+    dataset_path = f"{data_root}/{stage}.tsv"
+    data = np.loadtxt(dataset_path, dtype=str, delimiter="\t")
+
     model_path = f"{result_dir}/model.pkl"
     with open(model_path, "rb") as f:
         model = pickle.load(f)
 
     results = []
     missed_img_paths = []
-    for path in tqdm(img_paths):
-        label = os.path.basename(os.path.dirname(path))
-        pred = model.predict(path)
-        pred_label_id = pred[0].probs.top1
-        names = pred[0].names
-        pred_label = names[pred_label_id]
-        results.append([label, pred_label])
-        if label != pred_label:
-            missed_img_paths.append([path, label, pred_label])
+    for _, label, img_path in tqdm(data):
+        img = imread(img_path, img_size)
+        img = img.reshape(1, -1)
+        pred = model.predict(img)
+        results.append([label, pred])
+        if label != pred:
+            missed_img_paths.append([img_path, label, pred])
 
     results = np.array(results)
     cm = confusion_matrix(results.T[0], results.T[1])

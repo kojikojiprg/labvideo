@@ -2,7 +2,6 @@ import argparse
 import os
 import shutil
 import sys
-from glob import glob
 
 import numpy as np
 from tqdm import tqdm
@@ -92,6 +91,7 @@ if __name__ == "__main__":
             if data[0] != "" and data[1] != ""
         }
 
+        img_dir = f"datasets/anomaly/images{str_finetuned}"
         data = []
         for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
             if video_id not in info_json:
@@ -102,10 +102,10 @@ if __name__ == "__main__":
             data += extract_images_anomaly_dataset(
                 video_name,
                 ann_lst,
-                data_root,
                 th_sec,
                 th_iou,
                 is_finetuned=args.finetuned_model,
+                img_dir=img_dir,
             )
 
         np.random.seed(42)
@@ -120,37 +120,34 @@ if __name__ == "__main__":
         create_anomaly_dataset(data, train_idxs, data_root, "train")
         create_anomaly_dataset(data, test_idxs, data_root, "test")
 
-    # if args.train:
-    #     # train YOLO
-    #     yolo_result_dir = train_anomaly(data_name, split_type)
-    # else:
-    #     # only prediction
-    #     v_num = args.version
-    #     yolo_result_dir = f"runs/{split_type}/{data_name}/{str_finetuned}"
-    #     if v_num is not None:
-    #         yolo_result_dir += f"-v{v_num}"
+    if args.train:
+        # train YOLO
+        yolo_result_dir = train_anomaly(data_name, split_type)
+    else:
+        # only prediction
+        v_num = args.version
+        yolo_result_dir = f"runs/anomaly/{split_type}/{data_name}"
+        if v_num is not None:
+            yolo_result_dir += f"-v{v_num}"
 
-    # # prediction
-    # train_paths = glob(os.path.join(data_root, "train", "**", "*.jpg"))
-    # test_paths = glob(os.path.join(data_root, "test", "**", "*.jpg"))
+    # prediction
+    results_train, missed_img_path_train = pred_anomaly(
+        data_name, split_type, "train", yolo_result_dir
+    )
+    results_test, missed_img_path_test = pred_anomaly(
+        data_name, split_type, "test", yolo_result_dir
+    )
 
-    # results_train, missed_img_path_train = pred_anomaly(
-    #     train_paths, "train", yolo_result_dir
-    # )
-    # results_test, missed_img_path_test = pred_anomaly(
-    #     test_paths, "test", yolo_result_dir
-    # )
-
-    # missed_imgs_dir = os.path.join(
-    #     yolo_result_dir, f"missed_images_test{str_finetuned}"
-    # )
-    # if os.path.exists(missed_imgs_dir):
-    #     shutil.rmtree(missed_imgs_dir)
-    # os.makedirs(missed_imgs_dir, exist_ok=True)
-    # for path, label, pred_label in missed_img_path_test:
-    #     img_name = os.path.basename(path)
-    #     img_name = f"true-{label}_pred-{pred_label}_" + img_name
-    #     move_path = os.path.join(missed_imgs_dir, img_name)
-    #     shutil.copyfile(path, move_path)
+    missed_imgs_dir = os.path.join(
+        yolo_result_dir, f"missed_images_test{str_finetuned}"
+    )
+    if os.path.exists(missed_imgs_dir):
+        shutil.rmtree(missed_imgs_dir)
+    os.makedirs(missed_imgs_dir, exist_ok=True)
+    for path, label, pred_label in missed_img_path_test:
+        img_name = os.path.basename(path)
+        img_name = f"true-{label}_pred-{pred_label}_" + img_name
+        move_path = os.path.join(missed_imgs_dir, img_name)
+        shutil.copyfile(path, move_path)
 
     print("complete")
