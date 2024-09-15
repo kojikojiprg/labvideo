@@ -102,7 +102,7 @@ options:
 - ```-tr, --train```: ファインチューニングを行う
 - ```-v, --version```: テストバージョン(--train を指定したときは無効)
 
-#### classify_yolo.py
+#### classify_yolov8.py
 Yolov8n-cls.pt をファインチューニングして、アノテーション動画のPaintと重なるYOLO検出結果bboxを分類した  
 positional arguments:
 - ```data_type```: 'label' or 'label_type'
@@ -110,6 +110,24 @@ positional arguments:
   - 'label_type': A~C
   dataset==yoloの時、Paintの±th_sec秒以内でIoU>th_iouのデータを異常データ、それ以外を異常なしデータとする
 
+- ```split_type```: 'random' or 'video'
+  学習データとテストデータの分け方
+  - 'random': 全データでランダムに分割
+  - 'video': 動画ごとに分割(yolov8_fintuning.pyのデータセットと同じように分割)
+
+options:
+- ```-cd, --create_dataset```: データセットを作成する
+- ```-tr, --train```: ファインチューニングを行う
+- ```-v, --version```: テストバージョン(--train を指定したときは無効)
+- ```th_sec```(dataset==yolo): 異常とするYOLOの物体認識結果のPaintとの発生時間の閾値
+- ```th_iou```(dataset==yolo): 異常とするYOLOの物体認識結果のPaintとのIoUの閾値
+
+### anomaly_detection.py
+scikit-learn の OneClassSVM を用いて、YOLOv8の検出結果の異常検知を行った  
+- 異常あり: アノテーション動画のPaintと重なるYOLOv8の検出結果
+- 異常あり: アノテーション動画のPaintと重ならないYOLOv8の検出結果
+
+positional arguments:
 - ```split_type```: 'random' or 'video'
   学習データとテストデータの分け方
   - 'random': 全データでランダムに分割
