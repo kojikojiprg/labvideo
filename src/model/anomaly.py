@@ -66,7 +66,8 @@ def pred_anomaly(data_name, split_type, stage, result_dir, img_size=(32, 32)):
     for _, label, img_path in tqdm(data):
         img = imread(img_path, img_size)
         img = img.reshape(1, -1)
-        pred = model.predict(img)
+        pred = model.predict(img).item()
+        pred = 0 if pred == -1 else 1
         results.append([label, pred])
         if label != pred:
             missed_img_paths.append([img_path, label, pred])
