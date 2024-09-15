@@ -122,7 +122,7 @@ options:
 - ```th_sec```(dataset==yolo): 異常とするYOLOの物体認識結果のPaintとの発生時間の閾値
 - ```th_iou```(dataset==yolo): 異常とするYOLOの物体認識結果のPaintとのIoUの閾値
 
-### anomaly_detection.py
+#### anomaly_detection.py
 scikit-learn の OneClassSVM を用いて、YOLOv8の検出結果の異常検知を行った  
 - 異常あり: アノテーション動画のPaintと重なるYOLOv8の検出結果
 - 異常あり: アノテーション動画のPaintと重ならないYOLOv8の検出結果
