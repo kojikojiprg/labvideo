@@ -17,7 +17,9 @@ from ultralytics import YOLO
 def train_classify(data_name, data_type, split_type, epochs=100):
     model = YOLO("models/yolo/yolov8n-cls.pt")
     model.train(
-        data=f"classify/{split_type}/{data_name}/{data_type}", epochs=epochs, task="classify"
+        data=f"classify/{split_type}/{data_name}/{data_type}",
+        epochs=epochs,
+        task="classify",
     )
 
     # get trained data dir
@@ -41,7 +43,7 @@ def train_classify(data_name, data_type, split_type, epochs=100):
     return yolo_result_dir
 
 
-def pred_classify(img_paths, stage, yolo_result_dir):
+def pred_classify(img_paths, stage, yolo_result_dir, data_type):
     weights_path = os.path.join(yolo_result_dir, "weights", "last.pt")
     model = YOLO(weights_path)
 
@@ -60,16 +62,16 @@ def pred_classify(img_paths, stage, yolo_result_dir):
     results = np.array(results)
     cm = confusion_matrix(results.T[0], results.T[1])
     path = f"{yolo_result_dir}/cm_{stage}_num.jpg"
-    cm_plot(cm, path)
+    cm_plot(cm, path, data_type)
     cm = confusion_matrix(results.T[0], results.T[1], normalize="true")
     path = f"{yolo_result_dir}/cm_{stage}_recall.jpg"
-    cm_plot(cm, path)
+    cm_plot(cm, path, data_type)
     cm = confusion_matrix(results.T[0], results.T[1], normalize="pred")
     path = f"{yolo_result_dir}/cm_{stage}_precision.jpg"
-    cm_plot(cm, path)
+    cm_plot(cm, path, data_type)
     cm = confusion_matrix(results.T[0], results.T[1], normalize="all")
     path = f"{yolo_result_dir}/cm_{stage}_f1.jpg"
-    cm_plot(cm, path)
+    cm_plot(cm, path, data_type)
 
     path = f"{yolo_result_dir}/cm_{stage}_report.tsv"
     report = classification_report(
@@ -79,9 +81,13 @@ def pred_classify(img_paths, stage, yolo_result_dir):
     return results, missed_img_paths
 
 
-def cm_plot(cm, path):
+def cm_plot(cm, path, data_type):
     cmd = ConfusionMatrixDisplay(cm)
-    cmd.plot(xticks_rotation="vertical", include_values=True, cmap="Blues")
+    cmd.plot(
+        xticks_rotation="vertical",
+        include_values=data_type == "label_type",
+        cmap="Blues",
+    )
     plt.xticks(fontsize=6)
     plt.yticks(fontsize=6)
     plt.savefig(path, bbox_inches="tight")

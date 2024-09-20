@@ -128,7 +128,7 @@ if __name__ == "__main__":
     else:
         # only prediction
         v_num = args.version
-        yolo_result_dir = f"runs/split_type/{data_name}/{data_type}"
+        yolo_result_dir = f"runs/classify/{split_type}/{data_name}/{data_type}"
         if v_num is not None:
             yolo_result_dir += f"-v{v_num}"
 
@@ -137,10 +137,10 @@ if __name__ == "__main__":
     test_paths = glob(os.path.join(data_root, data_type, "test", "**", "*.jpg"))
 
     results_train, missed_img_path_train = pred_classify(
-        train_paths, "train", yolo_result_dir
+        train_paths, "train", yolo_result_dir, data_type
     )
     results_test, missed_img_path_test = pred_classify(
-        test_paths, "test", yolo_result_dir
+        test_paths, "test", yolo_result_dir, data_type
     )
 
     missed_imgs_dir = os.path.join(
