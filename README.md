@@ -90,6 +90,14 @@ options:
 - ```-f, --finetuned_model```: finetuningされたyolov8の結果を使用する  
   ```out/count_patin_within_bbox_finetuned.tsv``` に結果を保存
 
+#### plot_bbox_anomaly_labels.py
+YOLOv8の検出結果が異常あり/異常なしをプロットする。  
+options:
+- ```-f, --finetuned_model```: finetuningされたyolov8の結果を使用する  
+- ```th_sec```: 異常とするYOLOの物体認識結果のPaintとの発生時間の閾値
+- ```th_iou```: 異常とするYOLOの物体認識結果のPaintとのIoUの閾値
+- ```bbox_ratio```: Bboxをリサイズするためのフレームサイズに対しての比率
+
 #### classify_paint.py
 Yolov8n-cls.pt をファインチューニングしてアノテーション動画のPaint(丸で囲まれた部分)を分類した  
 positional arguments:
@@ -116,6 +124,7 @@ positional arguments:
   - 'video': 動画ごとに分割(yolov8_fintuning.pyのデータセットと同じように分割)
 
 options:
+- ```-f, --finetuned_model```: finetuningされたyolov8の結果を使用する  
 - ```-cd, --create_dataset```: データセットを作成する
 - ```-tr, --train```: ファインチューニングを行う
 - ```-v, --version```: テストバージョン(--train を指定したときは無効)
@@ -134,6 +143,7 @@ positional arguments:
   - 'video': 動画ごとに分割(yolov8_fintuning.pyのデータセットと同じように分割)
 
 options:
+- ```-f, --finetuned_model```: finetuningされたyolov8の結果を使用する  
 - ```-cd, --create_dataset```: データセットを作成する
 - ```-tr, --train```: ファインチューニングを行う
 - ```-v, --version```: テストバージョン(--train を指定したときは無効)
