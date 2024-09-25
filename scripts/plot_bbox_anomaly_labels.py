@@ -42,7 +42,11 @@ def plot_bbox_anomaly_or_normal(
     th_n_frame = np.ceil(cap.fps * th_sec).astype(int)
 
     # create writer
-    wrt = video.Writer(f"out/{video_name}/check_iou.mp4", cap.fps, cap.size)
+    wrt = video.Writer(
+        f"out/{video_name}/{video_name}{str_finetuned}_iou{th_iou}_sec{th_sec}_br{bbox_ratio}.mp4",
+        cap.fps,
+        cap.size,
+    )
 
     ann_n_frames = [
         np.ceil(float(ann["time"]) * cap.fps).astype(int) for ann in ann_json
@@ -60,19 +64,18 @@ def plot_bbox_anomaly_or_normal(
             continue
 
         # frame contain abnormal labels?
-        is_abnormal_frame = False
+        ann_lst_tmp = None
         for ann_n_frame in ann_n_frames:
             th_min = max(ann_n_frame - th_n_frame, 0)
             th_max = min(ann_n_frame + th_n_frame, cap.frame_count)
             if (th_min <= n_frame) and (n_frame <= th_max):
-                is_abnormal_frame = True
+                ann_lst_tmp = ann_lst[ann_lst.T[0].astype(int) == ann_n_frame]
                 break
 
-        ann_lst_tmp = ann_lst[ann_lst.T[0].astype(int) == n_frame]
-        for ann in ann_lst_tmp:
-            paint_bbox = ann[1:5].astype(np.float32)
+        if ann_lst_tmp is not None:
+            for ann in ann_lst_tmp:
+                paint_bbox = ann[1:5].astype(np.float32)
 
-            if is_abnormal_frame:
                 # extract yolo preds greater than th_iou
                 ious = calc_ious(paint_bbox, yolo_preds_tmp[:, 1:5].astype(np.float32))
                 yolo_preds_high_iou = yolo_preds_tmp[ious >= th_iou]
@@ -101,13 +104,13 @@ def plot_bbox_anomaly_or_normal(
                         pred[1:5].astype(float), bbox_ratio, cap.size
                     )
                     frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            else:
-                # normal data
-                for pred in yolo_preds_tmp:
-                    x1, y1, x2, y2 = calc_resized_bbox(
-                        pred[1:5].astype(float), bbox_ratio, cap.size
-                    )
-                    frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        else:
+            # normal data
+            for pred in yolo_preds_tmp:
+                x1, y1, x2, y2 = calc_resized_bbox(
+                    pred[1:5].astype(float), bbox_ratio, cap.size
+                )
+                frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
         wrt.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
