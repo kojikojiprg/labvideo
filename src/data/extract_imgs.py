@@ -235,3 +235,16 @@ def calc_ious(target_bbox, bboxs):
     union_area = a_area + b_area - intersection_area
 
     return intersection_area / union_area
+
+
+def calc_resized_bbox(bbox, bbox_ratio, frame_size):
+    x1, y1, x2, y2 = bbox
+    xc = (x2 - x1) / 2 + x1
+    yc = (y2 - y1) / 2 + y1
+    w, h = frame_size * bbox_ratio
+    x1 = int(xc - w / 2)
+    y1 = int(yc - h / 2)
+    x2 = int(xc + w / 2)
+    y2 = int(yc + h / 2)
+
+    return (x1, y1, x2, y2)
