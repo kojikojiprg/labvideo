@@ -13,7 +13,7 @@ pip install -U torch==2.1.2 torchvision --index-url https://download.pytorch.org
 
 ## Scripts
 ### Annotation
-#### get_paint_bbox.py
+#### get_annotation_bbox.py
 ```annotation/video/``` にある動画の黒丸部分を切り出す
 - ```annotation/paint_bbox.json``` に切り出した結果の座標を保存
 - ```annotation/paint_error.tsv``` に切り出せなかった結果を保存
