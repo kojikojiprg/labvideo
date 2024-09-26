@@ -91,7 +91,12 @@ options:
   ```out/count_patin_within_bbox_finetuned.tsv``` に結果を保存
 
 #### plot_bbox_anomaly_labels.py
-YOLOv8の検出結果が異常あり/異常なしをプロットする。  
+YOLOv8の検出結果が異常あり/異常なしを動画にプロットする。  
+```out/[動画名]/[動画名]_iou[th_iou]_sec[th_sec]_br[bbox_ratio].tsv``` に結果を保存  
+- 異常ありのbbox: Bboxを赤で表示, Bboの左上にラベル
+- 異常なしのbbox: Bboxを緑で表示
+- アノテーションのBbox: Bboxを黄で表示,  Bboの左上にラベル
+
 options:
 - ```-f, --finetuned_model```: finetuningされたyolov8の結果を使用する  
 - ```th_sec```: 異常とするYOLOの物体認識結果のPaintとの発生時間の閾値
