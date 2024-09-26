@@ -18,14 +18,16 @@ def load_annotation(video_name):
         delimiter="\t",
         skiprows=1,
     )
+    if len(ann_lst) == 0:
+        return None, []
+
+    # except error annotation
+    ann_lst = ann_lst[~np.all(ann_lst.T[1:5].astype(float) == 0.0, axis=0)]
 
     # extract frame number of each annotation
     n_frames = []
     for label in np.unique(ann_lst.T[8]):
         ann_lst_tmp = ann_lst[ann_lst.T[8] == label]
-        if np.all(ann_lst_tmp.T[1:5].astype(float) == 0.0):
-            continue  # skip error annotation
-
         n_frame = int(ann_lst_tmp[0, 0])
         n_frames.append(n_frame)
 
@@ -40,6 +42,8 @@ def plot_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, is_finet
 
     # load annotation
     ann_lst, ann_n_frames = load_annotation(video_name)
+    if ann_lst is None:
+        return None
 
     # load yolo detection result
     yolo_preds = np.loadtxt(
