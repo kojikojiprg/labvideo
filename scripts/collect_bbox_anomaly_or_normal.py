@@ -67,7 +67,8 @@ def plot_save_normal_bboxs(yolo_preds, frame, n_frame, img_dir):
         img_path = f"{img_dir}/{n_frame}_{i}.jpg"
         cv2.imwrite(img_path, img)
 
-        frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
+        green = (0, 255, 0)  # BGR
+        frame = cv2.rectangle(frame, (x1, y1), (x2, y2), green, 1)
 
     return frame
 
@@ -83,14 +84,15 @@ def plot_save_anomaly_bboxs(labels, yolo_preds, frame, n_frame, img_dir):
             os.makedirs(os.path.dirname(img_path))
         cv2.imwrite(img_path, img)
 
-        frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 1)
+        red = (0, 0, 255)  # BGR
+        frame = cv2.rectangle(frame, (x1, y1), (x2, y2), red, 1)
         frame = cv2.putText(
             frame,
             str(label),
             (x1, y1),
             cv2.FONT_HERSHEY_COMPLEX,
             0.7,
-            (255, 0, 0),
+            red,
             1,
         )
 
@@ -181,7 +183,8 @@ def collect_bbox_anomaly_or_normal(
 
                 # plot annotation
                 x1, y1, x2, y2 = ann_bbox.astype(int)
-                frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 0), 2)
+                yellow = (0, 255, 255)  # BGR
+                frame = cv2.rectangle(frame, (x1, y1), (x2, y2), yellow, 2)
                 frame = cv2.putText(
                     frame,
                     str(label),
