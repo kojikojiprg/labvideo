@@ -8,7 +8,10 @@ import numpy as np
 from tqdm import tqdm
 
 sys.path.append(".")
-from src.data import create_classification_dataset, extract_images_classify_dataset
+from src.data import (
+    collect_images_classification_dataset,
+    create_classification_dataset,
+)
 from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
 
@@ -49,12 +52,12 @@ if __name__ == "__main__":
     parser.add_argument("data_type", type=str, help="'label' or 'label_type'")
     parser.add_argument("split_type", type=str, help="'random' or 'video'")
 
-    # optional(dataset_type == 'yolo')
+    # optional
     parser.add_argument("-iou", "--th_iou", required=False, type=float, default=0.1)
     parser.add_argument("-sec", "--th_sec", required=False, type=float, default=1.0)
-
-    # optional
-    parser.add_argument("-f", "--finetuned_model", action="store_true")
+    parser.add_argument(
+        "-br", "--bbox_ratio", required=False, type=float, default=0.125
+    )
     parser.add_argument(
         "-cd", "--create_dataset", required=False, action="store_true", default=False
     )
@@ -68,14 +71,9 @@ if __name__ == "__main__":
     split_type = args.split_type
     th_iou = args.th_iou
     th_sec = args.th_sec
+    bbox_ratio = args.bbox_ratio
 
-    if args.finetuned_model:
-        str_finetuned = "_finetuned"
-    else:
-        str_finetuned = ""
-
-    data_name = "classify_yolo"
-    data_name += f"_sec{th_sec}_iou{th_iou}{str_finetuned}"
+    data_name = f"sec{th_sec}_iou{th_iou}_br{bbox_ratio}"
     data_root = f"datasets/classify/{split_type}/{data_name}"
     os.makedirs(data_root, exist_ok=True)
 
@@ -95,6 +93,7 @@ if __name__ == "__main__":
             if data[0] != "" and data[1] != ""
         }
 
+        img_dir = "datasets/images"
         data = []
         for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
             if video_id not in info_json:
@@ -102,12 +101,8 @@ if __name__ == "__main__":
                 continue
 
             video_name = video_id_to_name[video_id]
-            data += extract_images_classify_dataset(
-                video_name,
-                ann_lst,
-                th_sec,
-                th_iou,
-                is_finetuned=args.finetuned_model,
+            data += collect_images_classification_dataset(
+                video_name, th_sec, th_iou, bbox_ratio, img_dir
             )
 
         np.random.seed(42)
@@ -119,6 +114,7 @@ if __name__ == "__main__":
         else:
             train_idxs, test_idxs = split_train_test_by_video(data, video_id_to_name)
 
+        # TODO modify
         create_classification_dataset(data, train_idxs, data_root, data_type, "train")
         create_classification_dataset(data, test_idxs, data_root, data_type, "test")
 
@@ -143,9 +139,7 @@ if __name__ == "__main__":
         test_paths, "test", yolo_result_dir, data_type
     )
 
-    missed_imgs_dir = os.path.join(
-        yolo_result_dir, f"missed_images_test{str_finetuned}"
-    )
+    missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
     if os.path.exists(missed_imgs_dir):
         shutil.rmtree(missed_imgs_dir)
     os.makedirs(missed_imgs_dir, exist_ok=True)
