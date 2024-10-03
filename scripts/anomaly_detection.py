@@ -7,7 +7,10 @@ import numpy as np
 from tqdm import tqdm
 
 sys.path.append(".")
-from src.data import create_anomaly_dataset, extract_images_anomaly_dataset
+from src.data import (
+    collect_images_anomaly_detection_dataset,
+    create_anomaly_detection_dataset,
+)
 from src.model.anomaly import pred_anomaly, train_anomaly
 from src.utils import json_handler
 
@@ -47,12 +50,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("split_type", type=str, help="'random' or 'video'")
 
-    # optional(dataset_type == 'yolo')
+    # optional
     parser.add_argument("-iou", "--th_iou", required=False, type=float, default=0.1)
     parser.add_argument("-sec", "--th_sec", required=False, type=float, default=0.5)
-
-    # optional
-    parser.add_argument("-f", "--finetuned_model", action="store_true")
+    parser.add_argument(
+        "-br", "--bbox_ratio", required=False, type=float, default=0.125
+    )
     parser.add_argument(
         "-cd", "--create_dataset", required=False, action="store_true", default=False
     )
@@ -65,13 +68,9 @@ if __name__ == "__main__":
     split_type = args.split_type
     th_iou = args.th_iou
     th_sec = args.th_sec
+    bbox_ratio = args.bbox_ratio
 
-    if args.finetuned_model:
-        str_finetuned = "_finetuned"
-    else:
-        str_finetuned = ""
-
-    data_name = f"anomaly_sec{th_sec}_iou{th_iou}{str_finetuned}"
+    data_name = f"sec{th_sec}_iou{th_iou}_br{bbox_ratio}"
     data_root = f"datasets/anomaly/{split_type}/{data_name}"
     os.makedirs(data_root, exist_ok=True)
 
@@ -91,21 +90,16 @@ if __name__ == "__main__":
             if data[0] != "" and data[1] != ""
         }
 
-        img_dir = f"datasets/anomaly/images{str_finetuned}"
+        img_dir = "datasets/images"
         data = []
-        for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
+        for video_id in tqdm(ann_json.keys(), ncols=100):
             if video_id not in info_json:
                 tqdm.write(f"{video_id} is not in info.json")
                 continue
 
             video_name = video_id_to_name[video_id]
-            data += extract_images_anomaly_dataset(
-                video_name,
-                ann_lst,
-                th_sec,
-                th_iou,
-                is_finetuned=args.finetuned_model,
-                img_dir=img_dir,
+            data += collect_images_anomaly_detection_dataset(
+                video_name, th_sec, th_iou, bbox_ratio, img_dir
             )
 
         np.random.seed(42)
@@ -117,8 +111,8 @@ if __name__ == "__main__":
         else:
             train_idxs, test_idxs = split_train_test_by_video(data, video_id_to_name)
 
-        create_anomaly_dataset(data, train_idxs, data_root, "train")
-        create_anomaly_dataset(data, test_idxs, data_root, "test")
+        create_anomaly_detection_dataset(data, train_idxs, data_root, "train")
+        create_anomaly_detection_dataset(data, test_idxs, data_root, "test")
 
     if args.train:
         # train YOLO
@@ -138,9 +132,7 @@ if __name__ == "__main__":
         data_name, split_type, "test", yolo_result_dir
     )
 
-    missed_imgs_dir = os.path.join(
-        yolo_result_dir, f"missed_images_test{str_finetuned}"
-    )
+    missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
     if os.path.exists(missed_imgs_dir):
         shutil.rmtree(missed_imgs_dir)
     os.makedirs(missed_imgs_dir, exist_ok=True)

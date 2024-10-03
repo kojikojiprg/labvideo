@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm
 
 
-def create_classify_paint_dataset(data, idxs, data_root, data_type, stage):
+def create_classification_annotation_dataset(data, idxs, data_root, data_type, stage):
     for idx in idxs:
         aid, label, img_name = data[idx]
 
@@ -22,7 +22,7 @@ def create_classify_paint_dataset(data, idxs, data_root, data_type, stage):
         shutil.copyfile(os.path.join("annotation/images", img_name), img_path)
 
 
-def create_classify_dataset(data, idxs, data_root, data_type, stage):
+def create_classification_dataset(data, idxs, data_root, data_type, stage):
     for i, idx in enumerate(tqdm(idxs, ncols=100)):
         key, label, img = data[idx]
         if len(img.shape) != 3:
@@ -45,7 +45,7 @@ def create_classify_dataset(data, idxs, data_root, data_type, stage):
         cv2.imwrite(img_path, img)
 
 
-def create_anomaly_dataset(data, idxs, data_root, stage):
+def create_anomaly_detection_dataset(data, idxs, data_root, stage):
     data = np.array(data, dtype=str)
     data = data[idxs]
     path = f"{data_root}/{stage}.tsv"

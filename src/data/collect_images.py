@@ -55,7 +55,7 @@ def collect_images_classification_dataset(
     return data
 
 
-def collect_images_anomaly_dataset(
+def collect_images_anomaly_detection_dataset(
     video_name, th_sec, th_iou, bbox_ratio, img_dir="datasets/images"
 ):
     img_dir = f"{img_dir}/sec{th_sec}_iou{th_iou}_br{bbox_ratio}/{video_name}"
