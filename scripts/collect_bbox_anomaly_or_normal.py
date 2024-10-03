@@ -99,14 +99,7 @@ def plot_save_anomaly_bboxs(labels, yolo_preds, frame, n_frame, img_dir):
     return frame
 
 
-def collect_bbox_anomaly_or_normal(
-    video_name, th_sec, th_iou, bbox_ratio, is_finetuned, img_dir="datasets/images/"
-):
-    if is_finetuned:
-        str_finetuned = "_finetuned"
-    else:
-        str_finetuned = ""
-
+def collect_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, img_dir):
     # load annotation
     ann_lst, ann_n_frames = load_annotation(video_name)
     if ann_lst is None:
@@ -114,7 +107,7 @@ def collect_bbox_anomaly_or_normal(
 
     # load yolo detection result
     yolo_preds = np.loadtxt(
-        os.path.join(f"out/{video_name}/{video_name}_det{str_finetuned}.tsv"),
+        os.path.join(f"out/{video_name}/{video_name}_det_finetuned.tsv"),
         str,
         delimiter="\t",
         skiprows=1,
@@ -127,7 +120,7 @@ def collect_bbox_anomaly_or_normal(
 
     # create writer
     wrt = video.Writer(
-        f"out/{video_name}/{video_name}{str_finetuned}_iou{th_iou}_sec{th_sec}_br{bbox_ratio}.mp4",
+        f"out/{video_name}/{video_name}_iou{th_iou}_sec{th_sec}_br{bbox_ratio}.mp4",
         cap.fps,
         cap.size,
     )
@@ -235,17 +228,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "-br", "--bbox_ratio", required=False, type=float, default=0.125
     )
-    parser.add_argument("-f", "--finetuned_model", action="store_true")
     args = parser.parse_args()
 
     th_iou = args.th_iou
     th_sec = args.th_sec
     bbox_ratio = args.bbox_ratio
-
-    if args.finetuned_model:
-        str_finetuned = "_finetuned"
-    else:
-        str_finetuned = ""
 
     ann_json = json_handler.load("annotation/annotation.json")
     info_json = json_handler.load("annotation/info.json")
