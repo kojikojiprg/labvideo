@@ -248,13 +248,12 @@ if __name__ == "__main__":
         if data[0] != "" and data[1] != ""
     }
 
+    img_dir = "datasets/images"
     for video_id in tqdm(ann_json.keys(), ncols=100):
         if video_id not in info_json:
             tqdm.write(f"{video_id} is not in info.json")
             continue
 
         video_name = video_id_to_name[video_id]
-        collect_bbox_anomaly_or_normal(
-            video_name, th_sec, th_iou, bbox_ratio, args.finetuned_model
-        )
+        collect_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, img_dir)
     print("complete")
