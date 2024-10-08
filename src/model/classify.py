@@ -58,19 +58,27 @@ def pred_classify(img_paths, stage, yolo_result_dir, data_type):
         if label != pred_label:
             missed_img_paths.append([path, label, pred_label])
 
+    # sort by true labels
+    results = sorted(results, key=lambda x: x[0])
+
     results = np.array(results)
-    cm = confusion_matrix(results.T[0], results.T[1]).T
+    classes = np.unique(results.T[0])
+
+    cm = confusion_matrix(results.T[0], results.T[1])
     path = f"{yolo_result_dir}/cm_{stage}_num.jpg"
-    vis.plot_cm(cm, names, path, False)
-    cm = confusion_matrix(results.T[0], results.T[1], normalize="true").T
+    vis.plot_cm(cm, classes, path, False)
+
+    cm = confusion_matrix(results.T[0], results.T[1], normalize="true")
     path = f"{yolo_result_dir}/cm_{stage}_recall.jpg"
-    vis.plot_cm(cm, names, path, False)
-    cm = confusion_matrix(results.T[0], results.T[1], normalize="pred").T
+    vis.plot_cm(cm, classes, path, False)
+
+    cm = confusion_matrix(results.T[0], results.T[1], normalize="pred")
     path = f"{yolo_result_dir}/cm_{stage}_precision.jpg"
-    vis.plot_cm(cm, names, path, False)
-    cm = confusion_matrix(results.T[0], results.T[1], normalize="all").T
+    vis.plot_cm(cm, classes, path, False)
+
+    cm = confusion_matrix(results.T[0], results.T[1], normalize="all")
     path = f"{yolo_result_dir}/cm_{stage}_f1.jpg"
-    vis.plot_cm(cm, names, path, False)
+    vis.plot_cm(cm, classes, path, False)
 
     path = f"{yolo_result_dir}/cm_{stage}_report.tsv"
     report = classification_report(

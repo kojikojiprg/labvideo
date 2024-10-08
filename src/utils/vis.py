@@ -76,12 +76,12 @@ def plot_cm(cm, labels, save_path, normalize=False, on_plot=True):
         yticklabels=ticklabels,
     ).set_facecolor((1, 1, 1))
 
-    title = "Confusion Matrix" + " Normalized" * normalize
+    # title = "Confusion Matrix" + " Normalized" * normalize
+    # ax.set_title(title)
     ax.set_xlabel("True")
-    ax.set_xticklabels(labels, rotation=90)
+    ax.set_xticklabels(labels, rotation=0)
     ax.set_ylabel("Predicted")
     ax.set_yticklabels(labels, rotation=0)
-    ax.set_title(title)
     if normalize:
         save_path = save_path.replace(".png", "") + "_normalized.png"
     fig.savefig(save_path, dpi=250)
