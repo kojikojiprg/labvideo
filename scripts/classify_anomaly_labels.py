@@ -50,11 +50,11 @@ def split_train_test_by_video(data, video_id_to_name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_type", type=str, help="'label' or 'label_type'")
-    parser.add_argument("split_type", type=str, help="'random' or 'video'")
+    parser.add_argument("split_type", type=str, help="'all' or 'video'")
 
     # optional
     parser.add_argument("-iou", "--th_iou", required=False, type=float, default=0.1)
-    parser.add_argument("-sec", "--th_sec", required=False, type=float, default=1.0)
+    parser.add_argument("-sec", "--th_sec", required=False, type=float, default=0.5)
     parser.add_argument(
         "-br", "--bbox_ratio", required=False, type=float, default=0.125
     )
@@ -74,8 +74,9 @@ if __name__ == "__main__":
     bbox_ratio = args.bbox_ratio
 
     data_name = f"sec{th_sec}_iou{th_iou}_br{bbox_ratio}"
-    data_root = f"datasets/classify/{split_type}/{data_name}"
-    os.makedirs(data_root, exist_ok=True)
+    dataset_dir = f"datasets/classify/{data_name}/{split_type}/{data_type}"
+    yolo_result_dir = f"runs/classify/{data_name}/{split_type}/{data_type}"
+    os.makedirs(dataset_dir, exist_ok=True)
 
     # create dataset
     if args.create_dataset:
@@ -106,7 +107,7 @@ if __name__ == "__main__":
             )
 
         np.random.seed(42)
-        if split_type == "random":
+        if split_type == "all":
             random_idxs = np.random.choice(np.arange(len(data)), len(data))
             train_length = int(len(data) * 0.7)
             train_idxs = random_idxs[:train_length]
@@ -114,9 +115,8 @@ if __name__ == "__main__":
         else:
             train_idxs, test_idxs = split_train_test_by_video(data, video_id_to_name)
 
-        # TODO modify
-        create_classification_dataset(data, train_idxs, data_root, data_type, "train")
-        create_classification_dataset(data, test_idxs, data_root, data_type, "test")
+        create_classification_dataset(data, train_idxs, dataset_dir, data_type, "train")
+        create_classification_dataset(data, test_idxs, dataset_dir, data_type, "test")
 
     if args.train:
         # train YOLO
@@ -124,13 +124,12 @@ if __name__ == "__main__":
     else:
         # only prediction
         v_num = args.version
-        yolo_result_dir = f"runs/classify/{split_type}/{data_name}/{data_type}"
         if v_num is not None:
             yolo_result_dir += f"-v{v_num}"
 
     # prediction
-    train_paths = glob(os.path.join(data_root, data_type, "train", "**", "*.jpg"))
-    test_paths = glob(os.path.join(data_root, data_type, "test", "**", "*.jpg"))
+    train_paths = glob(os.path.join(dataset_dir, "train", "**", "*.jpg"))
+    test_paths = glob(os.path.join(dataset_dir, "test", "**", "*.jpg"))
 
     results_train, missed_img_path_train = pred_classify(
         train_paths, "train", yolo_result_dir, data_type
@@ -139,14 +138,14 @@ if __name__ == "__main__":
         test_paths, "test", yolo_result_dir, data_type
     )
 
-    missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
-    if os.path.exists(missed_imgs_dir):
-        shutil.rmtree(missed_imgs_dir)
-    os.makedirs(missed_imgs_dir, exist_ok=True)
-    for path, label, pred_label in missed_img_path_test:
-        img_name = os.path.basename(path)
-        img_name = f"true-{label}_pred-{pred_label}_" + img_name
-        move_path = os.path.join(missed_imgs_dir, img_name)
-        shutil.copyfile(path, move_path)
+    # missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
+    # if os.path.exists(missed_imgs_dir):
+    #     shutil.rmtree(missed_imgs_dir)
+    # os.makedirs(missed_imgs_dir, exist_ok=True)
+    # for path, label, pred_label in missed_img_path_test:
+    #     img_name = os.path.basename(path)
+    #     img_name = f"true-{label}_pred-{pred_label}_" + img_name
+    #     move_path = os.path.join(missed_imgs_dir, img_name)
+    #     shutil.copyfile(path, move_path)
 
     print("complete")

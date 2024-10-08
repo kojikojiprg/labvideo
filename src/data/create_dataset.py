@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm
 
 
-def create_classification_annotation_dataset(data, idxs, data_root, data_type, stage):
+def create_classification_annotation_dataset(data, idxs, dataset_dir, data_type, stage):
     for idx in idxs:
         aid, label, img_name = data[idx]
 
@@ -17,14 +17,16 @@ def create_classification_annotation_dataset(data, idxs, data_root, data_type, s
         else:
             raise ValueError
 
-        img_path = os.path.join(data_root, data_type, stage, lbl_txt, img_name)
+        img_path = os.path.join(dataset_dir, stage, lbl_txt, img_name)
         os.makedirs(os.path.dirname(img_path), exist_ok=True)
         shutil.copyfile(os.path.join("annotation/images", img_name), img_path)
 
 
-def create_classification_dataset(data, idxs, data_root, data_type, stage):
+def create_classification_dataset(data, idxs, dataset_dir, data_type, stage):
+    dataset_summary = {}
     for i, idx in enumerate(tqdm(idxs, ncols=100)):
-        key, label, img = data[idx]
+        key, label, img_path = data[idx]
+        img = cv2.imread(img_path)
         if len(img.shape) != 3:
             raise ValueError(f"{img.shape}")
 
@@ -37,12 +39,22 @@ def create_classification_dataset(data, idxs, data_root, data_type, stage):
         else:
             raise ValueError
 
-        img_path = os.path.join(data_root, data_type, stage, lbl_txt, f"{i:04d}.jpg")
+        img_path = os.path.join(dataset_dir, stage, lbl_txt, f"{i:04d}.jpg")
         img_dir = os.path.dirname(img_path)
         if not os.path.exists(img_dir):
-            os.makedirs(os.path.dirname(img_path), exist_ok=False)
+            os.makedirs(img_dir, exist_ok=False)
 
         cv2.imwrite(img_path, img)
+
+        if lbl_txt not in dataset_summary:
+            dataset_summary[lbl_txt] = 0
+        dataset_summary[lbl_txt] += 1
+
+    path = f"{dataset_dir}/summary_{stage}.tsv"
+    dataset_summary = list(dataset_summary.items())
+    assert sum([d[1] for d in dataset_summary]) == len(idxs)
+    dataset_summary.append(("total", len(idxs)))
+    np.savetxt(path, dataset_summary, "%s", delimiter="\t")
 
 
 def create_anomaly_detection_dataset(data, idxs, data_root, stage):

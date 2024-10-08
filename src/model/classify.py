@@ -14,11 +14,13 @@ from tqdm import tqdm
 from ultralytics import YOLO
 
 
-def train_classify(data_name, data_type, split_type, epochs=100):
+def train_classify(data_name, data_type, split_type, epochs=100, batch_size=128):
     model = YOLO("models/yolo/yolov8n-cls.pt")
+    model = model.cuda()
     model.train(
-        data=f"classify/{split_type}/{data_name}/{data_type}",
+        data=f"classify/{data_name}/{split_type}/{data_type}",
         epochs=epochs,
+        batch=batch_size,
         task="classify",
     )
 
@@ -26,7 +28,7 @@ def train_classify(data_name, data_type, split_type, epochs=100):
     dirs = sorted(glob("runs/classify/train*/"))
     trained_dir = dirs[-1]
 
-    yolo_result_dir = f"runs/classify/{split_type}/{data_name}/{data_type}"
+    yolo_result_dir = f"runs/classify/{data_name}/{split_type}/{data_type}"
     if os.path.exists(yolo_result_dir):
         dirs = sorted(glob(yolo_result_dir + "-v*/"))
         if len(dirs) == 0:
