@@ -1,0 +1,27 @@
+name: labvideo
+channels:
+  - pytorch
+  - conda-forge
+  - nvidia
+  - defaults
+dependencies:
+  - python=3.10.14=h955ad1f_1
+  - anaconda
+  - pip
+  - wheel
+  - numpy
+  - pandas
+  - scipy
+  - matplotlib
+  - seaborn
+  - opencv
+  - scikit-learn
+  - ultralytics
+  - jupyter
+  - tqdm
+  - lap
+  - flake8
+  - black
+  - mypy
+  - isort
+prefix: /data3/yokoyama/anaconda3/envs/labvideo
