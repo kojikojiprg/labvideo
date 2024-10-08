@@ -23,7 +23,7 @@ def imread(img_path, img_size):
 
 
 def train_anomaly(data_name, split_type, img_size=(32, 32)):
-    data_root = f"datasets/anomaly/{split_type}/{data_name}"
+    data_root = f"datasets/anomaly/{data_name}/{split_type}"
     dataset_path = f"{data_root}/train.tsv"
     data = np.loadtxt(dataset_path, dtype=str, delimiter="\t")
     normal_img_paths = [d[2] for d in data if int(d[1]) == 0]
@@ -53,7 +53,7 @@ def train_anomaly(data_name, split_type, img_size=(32, 32)):
 
 
 def pred_anomaly(data_name, split_type, stage, result_dir, img_size=(32, 32)):
-    data_root = f"datasets/anomaly/{split_type}/{data_name}"
+    data_root = f"datasets/anomaly/{data_name}/{split_type}"
     dataset_path = f"{data_root}/{stage}.tsv"
     data = np.loadtxt(dataset_path, dtype=str, delimiter="\t")
 

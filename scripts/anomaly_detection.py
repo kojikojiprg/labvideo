@@ -10,45 +10,14 @@ sys.path.append(".")
 from src.data import (
     collect_images_anomaly_detection_dataset,
     create_anomaly_detection_dataset,
+    split_train_test_by_video,
 )
 from src.model.anomaly import pred_anomaly, train_anomaly
 from src.utils import json_handler
 
-
-def split_train_test_by_video(data, video_id_to_name):
-    # data ("{video_name}-{label}, label, img")
-
-    train_video_ids = np.loadtxt(
-        "datasets/yolov8_finetuning/summary_dataset_train.tsv",
-        dtype=str,
-        delimiter="\t",
-        skiprows=1,
-    )[:-1, 0]
-    test_video_ids = np.loadtxt(
-        "datasets/yolov8_finetuning/summary_dataset_test.tsv",
-        dtype=str,
-        delimiter="\t",
-        skiprows=1,
-    )[:-1, 0]
-    train_video_names = [video_id_to_name[_id] for _id in train_video_ids]
-    test_video_names = [video_id_to_name[_id] for _id in test_video_ids]
-
-    # split data per label
-    train_idxs = []
-    test_idxs = []
-    for i, d in enumerate(data):
-        video_name = d[0].split("-")[0]
-        if video_name in train_video_names:
-            train_idxs.append(i)
-        elif video_name in test_video_names:
-            test_idxs.append(i)
-
-    return train_idxs, test_idxs
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("split_type", type=str, help="'random' or 'video'")
+    parser.add_argument("split_type", type=str, help="'all' or 'video'")
 
     # optional
     parser.add_argument("-iou", "--th_iou", required=False, type=float, default=0.1)
@@ -71,8 +40,9 @@ if __name__ == "__main__":
     bbox_ratio = args.bbox_ratio
 
     data_name = f"sec{th_sec}_iou{th_iou}_br{bbox_ratio}"
-    data_root = f"datasets/anomaly/{split_type}/{data_name}"
-    os.makedirs(data_root, exist_ok=True)
+    dataset_dir = f"datasets/anomaly/{data_name}/{split_type}"
+    yolo_result_dir = f"runs/anomaly/{data_name}/{split_type}"
+    os.makedirs(dataset_dir, exist_ok=True)
 
     # create dataset
     if args.create_dataset:
@@ -103,7 +73,7 @@ if __name__ == "__main__":
             )
 
         np.random.seed(42)
-        if split_type == "random":
+        if split_type == "all":
             random_idxs = np.random.choice(np.arange(len(data)), len(data))
             train_length = int(len(data) * 0.7)
             train_idxs = random_idxs[:train_length]
@@ -111,8 +81,8 @@ if __name__ == "__main__":
         else:
             train_idxs, test_idxs = split_train_test_by_video(data, video_id_to_name)
 
-        create_anomaly_detection_dataset(data, train_idxs, data_root, "train")
-        create_anomaly_detection_dataset(data, test_idxs, data_root, "test")
+        create_anomaly_detection_dataset(data, train_idxs, dataset_dir, "train")
+        create_anomaly_detection_dataset(data, test_idxs, dataset_dir, "test")
 
     if args.train:
         # train YOLO
@@ -120,7 +90,6 @@ if __name__ == "__main__":
     else:
         # only prediction
         v_num = args.version
-        yolo_result_dir = f"runs/anomaly/{split_type}/{data_name}"
         if v_num is not None:
             yolo_result_dir += f"-v{v_num}"
 
@@ -132,14 +101,14 @@ if __name__ == "__main__":
         data_name, split_type, "test", yolo_result_dir
     )
 
-    missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
-    if os.path.exists(missed_imgs_dir):
-        shutil.rmtree(missed_imgs_dir)
-    os.makedirs(missed_imgs_dir, exist_ok=True)
-    for path, label, pred_label in missed_img_path_test:
-        img_name = os.path.basename(path)
-        img_name = f"true-{label}_pred-{pred_label}_" + img_name
-        move_path = os.path.join(missed_imgs_dir, img_name)
-        shutil.copyfile(path, move_path)
+    # missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
+    # if os.path.exists(missed_imgs_dir):
+    #     shutil.rmtree(missed_imgs_dir)
+    # os.makedirs(missed_imgs_dir, exist_ok=True)
+    # for path, label, pred_label in missed_img_path_test:
+    #     img_name = os.path.basename(path)
+    #     img_name = f"true-{label}_pred-{pred_label}_" + img_name
+    #     move_path = os.path.join(missed_imgs_dir, img_name)
+    #     shutil.copyfile(path, move_path)
 
     print("complete")

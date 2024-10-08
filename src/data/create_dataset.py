@@ -50,18 +50,28 @@ def create_classification_dataset(data, idxs, dataset_dir, data_type, stage):
             dataset_summary[lbl_txt] = 0
         dataset_summary[lbl_txt] += 1
 
-    path = f"{dataset_dir}/summary_{stage}.tsv"
     dataset_summary = list(dataset_summary.items())
     assert sum([d[1] for d in dataset_summary]) == len(idxs)
     dataset_summary.append(("total", len(idxs)))
+    path = f"{dataset_dir}/summary_{stage}.tsv"
     np.savetxt(path, dataset_summary, "%s", delimiter="\t")
 
 
-def create_anomaly_detection_dataset(data, idxs, data_root, stage):
+def create_anomaly_detection_dataset(data, idxs, dataset_dir, stage):
     data = np.array(data, dtype=str)
     data = data[idxs]
-    path = f"{data_root}/{stage}.tsv"
+    path = f"{dataset_dir}/{stage}.tsv"
     np.savetxt(path, data, delimiter="\t", fmt="%s")
+
+    dataset_summary = {0: 0, 1: 0}
+    for d in tqdm(data, ncols=100):
+        label = int(d[1])
+        dataset_summary[label] += 1
+    dataset_summary = list(dataset_summary.items())
+    assert sum([d[1] for d in dataset_summary]) == len(idxs)
+    dataset_summary.append(("total", len(idxs)))
+    path = f"{dataset_dir}/summary_{stage}.tsv"
+    np.savetxt(path, dataset_summary, "%s", delimiter="\t")
 
 
 def create_yolov8_finetuning_dataset(

@@ -11,41 +11,10 @@ sys.path.append(".")
 from src.data import (
     collect_images_classification_dataset,
     create_classification_dataset,
+    split_train_test_by_video,
 )
 from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
-
-
-def split_train_test_by_video(data, video_id_to_name):
-    # data ("{video_name}-{label}, label, img")
-
-    train_video_ids = np.loadtxt(
-        "datasets/yolov8_finetuning/summary_dataset_train.tsv",
-        dtype=str,
-        delimiter="\t",
-        skiprows=1,
-    )[:-1, 0]
-    test_video_ids = np.loadtxt(
-        "datasets/yolov8_finetuning/summary_dataset_test.tsv",
-        dtype=str,
-        delimiter="\t",
-        skiprows=1,
-    )[:-1, 0]
-    train_video_names = [video_id_to_name[_id] for _id in train_video_ids]
-    test_video_names = [video_id_to_name[_id] for _id in test_video_ids]
-
-    # split data per label
-    train_idxs = []
-    test_idxs = []
-    for i, d in enumerate(data):
-        video_name = d[0].split("-")[0]
-        if video_name in train_video_names:
-            train_idxs.append(i)
-        elif video_name in test_video_names:
-            test_idxs.append(i)
-
-    return train_idxs, test_idxs
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
