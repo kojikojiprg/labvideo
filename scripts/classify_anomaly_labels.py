@@ -100,11 +100,16 @@ if __name__ == "__main__":
     train_paths = glob(os.path.join(dataset_dir, "train", "**", "*.jpg"))
     test_paths = glob(os.path.join(dataset_dir, "test", "**", "*.jpg"))
 
+    train_labels = np.loadtxt(f"{dataset_dir}/summary_train.tsv", str, delimiter="\t")[:-1].T[0]
+    test_labels = np.loadtxt(f"{dataset_dir}/summary_test.tsv", str, delimiter="\t")[:-1].T[0]
+    labels = train_labels.tolist() + test_labels.tolist()
+    labels = np.unique(sorted(labels))
+
     results_train, missed_img_path_train = pred_classify(
-        train_paths, "train", yolo_result_dir, data_type
+        train_paths, "train", yolo_result_dir, labels
     )
     results_test, missed_img_path_test = pred_classify(
-        test_paths, "test", yolo_result_dir, data_type
+        test_paths, "test", yolo_result_dir, labels
     )
 
     # missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")

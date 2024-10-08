@@ -4,7 +4,7 @@ from glob import glob
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report
 from tqdm import tqdm
 from ultralytics import YOLO
 
@@ -42,43 +42,54 @@ def train_classify(data_name, data_type, split_type, epochs=100, batch_size=128)
     return yolo_result_dir
 
 
-def pred_classify(img_paths, stage, yolo_result_dir, data_type):
+def pred_classify(img_paths, stage, yolo_result_dir, labels):
     weights_path = os.path.join(yolo_result_dir, "weights", "last.pt")
     model = YOLO(weights_path)
 
     results = []
     missed_img_paths = []
+    cm = np.zeros((len(labels), len(labels)))
+    label2idx = {label: i for i, label in enumerate(labels)}
     for path in tqdm(img_paths):
-        label = os.path.basename(os.path.dirname(path))
+        # extract ground truth
+        true_label = os.path.basename(os.path.dirname(path))
+
+        # prediction
         pred = model(path)
         pred_label_id = pred[0].probs.top1
         names = pred[0].names
         pred_label = names[pred_label_id]
-        results.append([label, pred_label])
-        if label != pred_label:
-            missed_img_paths.append([path, label, pred_label])
 
-    # sort by true labels
+        results.append([true_label, pred_label])
+
+        true_idx = label2idx[true_label]
+        pred_idx = label2idx[pred_label]
+        cm[pred_idx, true_idx] += 1
+        if true_label != pred_label:
+            missed_img_paths.append([path, true_label, pred_label])
+
     results = sorted(results, key=lambda x: x[0])
-
     results = np.array(results)
-    classes = np.unique(results.T[0])
 
-    cm = confusion_matrix(results.T[0], results.T[1])
+    # cm = confusion_matrix(results.T[0], results.T[1]).T
     path = f"{yolo_result_dir}/cm_{stage}_num.jpg"
-    vis.plot_cm(cm, classes, path, False)
+    vis.plot_cm(cm, labels, path, False)
 
-    cm = confusion_matrix(results.T[0], results.T[1], normalize="true")
+    # cm = confusion_matrix(results.T[0], results.T[1], normalize="true").T
+    cm_recall = cm / (cm.sum(axis=0, keepdims=True) + 1e-9)
+    print(np.max(cm_recall))
     path = f"{yolo_result_dir}/cm_{stage}_recall.jpg"
-    vis.plot_cm(cm, classes, path, False)
+    vis.plot_cm(cm_recall, labels, path, True)
 
-    cm = confusion_matrix(results.T[0], results.T[1], normalize="pred")
+    # cm = confusion_matrix(results.T[0], results.T[1], normalize="pred").T
+    cm_precision = cm / (cm.sum(axis=1, keepdims=True) + 1e-9)
     path = f"{yolo_result_dir}/cm_{stage}_precision.jpg"
-    vis.plot_cm(cm, classes, path, False)
+    vis.plot_cm(cm_precision, labels, path, True)
 
-    cm = confusion_matrix(results.T[0], results.T[1], normalize="all")
+    # cm = confusion_matrix(results.T[0], results.T[1], normalize="all").T
+    cm_f1 = 2 / ((1 / cm_recall) + (1 / cm_precision) + 1e-9)
     path = f"{yolo_result_dir}/cm_{stage}_f1.jpg"
-    vis.plot_cm(cm, classes, path, False)
+    vis.plot_cm(cm_f1, labels, path, True)
 
     path = f"{yolo_result_dir}/cm_{stage}_report.tsv"
     report = classification_report(

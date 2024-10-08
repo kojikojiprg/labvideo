@@ -55,10 +55,8 @@ def plot_paint_center(frame, count, center):
     return frame
 
 
-def plot_cm(cm, labels, save_path, normalize=False, on_plot=True):
-    array = cm / (
-        (cm.sum(0).reshape(1, -1) + 1e-9) if normalize else 1
-    )  # normalize columns
+def plot_cm(cm, labels, save_path, normalized=False, on_plot=True):
+    array = cm.copy()
     array[array < 0.005] = np.nan  # don't annotate (would appear as 0.00)
 
     fig, ax = plt.subplots(1, 1, figsize=(12, 9), tight_layout=True)
@@ -69,7 +67,7 @@ def plot_cm(cm, labels, save_path, normalize=False, on_plot=True):
         annot=True,
         annot_kws={"size": 8},
         cmap="Blues",
-        fmt=".2f" if normalize else ".0f",
+        fmt=".2f" if normalized else ".0f",
         square=True,
         vmin=0.0,
         xticklabels=ticklabels,
@@ -82,8 +80,6 @@ def plot_cm(cm, labels, save_path, normalize=False, on_plot=True):
     ax.set_xticklabels(labels, rotation=0)
     ax.set_ylabel("Predicted")
     ax.set_yticklabels(labels, rotation=0)
-    if normalize:
-        save_path = save_path.replace(".png", "") + "_normalized.png"
     fig.savefig(save_path, dpi=250)
     if on_plot:
         plt.show()
