@@ -20,7 +20,7 @@ def load_annotation(video_name):
         skiprows=1,
     )
     if len(ann_lst) == 0:
-        return None, []
+        return [], []
 
     # except error annotation
     ann_lst = ann_lst[~np.all(ann_lst.T[1:5].astype(float) == 0.0, axis=0)]
@@ -102,8 +102,9 @@ def plot_save_anomaly_bboxs(labels, yolo_preds, frame, n_frame, img_dir):
 def collect_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, img_dir):
     # load annotation
     ann_lst, ann_n_frames = load_annotation(video_name)
-    if ann_lst is None:
-        return None
+    if len(ann_lst) == 0:
+        tqdm.write(f"{video_id} doesn't have correct annotation")
+        return
 
     # load yolo detection result
     yolo_preds = np.loadtxt(
@@ -249,7 +250,7 @@ if __name__ == "__main__":
     }
 
     img_dir = "datasets/images"
-    for video_id in tqdm(ann_json.keys(), ncols=100):
+    for video_id in tqdm(list(ann_json.keys())[21:], ncols=100):
         if video_id not in info_json:
             tqdm.write(f"{video_id} is not in info.json")
             continue
