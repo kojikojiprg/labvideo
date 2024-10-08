@@ -51,6 +51,7 @@ def create_classification_dataset(data, idxs, dataset_dir, data_type, stage):
         dataset_summary[lbl_txt] += 1
 
     dataset_summary = list(dataset_summary.items())
+    dataset_summary = sorted(dataset_summary, key=lambda x: x[0])
     assert sum([d[1] for d in dataset_summary]) == len(idxs)
     dataset_summary.append(("total", len(idxs)))
     path = f"{dataset_dir}/summary_{stage}.tsv"
@@ -68,6 +69,7 @@ def create_anomaly_detection_dataset(data, idxs, dataset_dir, stage):
         label = int(d[1])
         dataset_summary[label] += 1
     dataset_summary = list(dataset_summary.items())
+    dataset_summary = sorted(dataset_summary, key=lambda x: x[0])
     assert sum([d[1] for d in dataset_summary]) == len(idxs)
     dataset_summary.append(("total", len(idxs)))
     path = f"{dataset_dir}/summary_{stage}.tsv"

@@ -1,6 +1,7 @@
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn
 from numpy.typing import NDArray
 
 cmap = plt.get_cmap("tab10")
@@ -52,3 +53,38 @@ def plot_paint_center(frame, count, center):
         thickness=3,
     )
     return frame
+
+
+def plot_cm(cm, labels, save_path, normalize=False, on_plot=True):
+    array = cm / (
+        (cm.sum(0).reshape(1, -1) + 1e-9) if normalize else 1
+    )  # normalize columns
+    array[array < 0.005] = np.nan  # don't annotate (would appear as 0.00)
+
+    fig, ax = plt.subplots(1, 1, figsize=(12, 9), tight_layout=True)
+    ticklabels = labels
+    seaborn.heatmap(
+        array,
+        ax=ax,
+        annot=True,
+        annot_kws={"size": 8},
+        cmap="Blues",
+        fmt=".2f" if normalize else ".0f",
+        square=True,
+        vmin=0.0,
+        xticklabels=ticklabels,
+        yticklabels=ticklabels,
+    ).set_facecolor((1, 1, 1))
+
+    title = "Confusion Matrix" + " Normalized" * normalize
+    ax.set_xlabel("True")
+    ax.set_xticklabels(labels, rotation=90)
+    ax.set_ylabel("Predicted")
+    ax.set_yticklabels(labels, rotation=0)
+    ax.set_title(title)
+    if normalize:
+        save_path = save_path.replace(".png", "") + "_normalized.png"
+    fig.savefig(save_path, dpi=250)
+    if on_plot:
+        plt.show()
+    plt.close(fig)

@@ -2,16 +2,13 @@ import os
 import shutil
 from glob import glob
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.metrics import (
-    ConfusionMatrixDisplay,
-    classification_report,
-    confusion_matrix,
-)
+from sklearn.metrics import classification_report, confusion_matrix
 from tqdm import tqdm
 from ultralytics import YOLO
+
+from src.utils import vis
 
 
 def train_classify(data_name, data_type, split_type, epochs=100, batch_size=128):
@@ -62,18 +59,18 @@ def pred_classify(img_paths, stage, yolo_result_dir, data_type):
             missed_img_paths.append([path, label, pred_label])
 
     results = np.array(results)
-    cm = confusion_matrix(results.T[0], results.T[1])
+    cm = confusion_matrix(results.T[0], results.T[1]).T
     path = f"{yolo_result_dir}/cm_{stage}_num.jpg"
-    cm_plot(cm, path, data_type)
-    cm = confusion_matrix(results.T[0], results.T[1], normalize="true")
+    vis.plot_cm(cm, names, path, False)
+    cm = confusion_matrix(results.T[0], results.T[1], normalize="true").T
     path = f"{yolo_result_dir}/cm_{stage}_recall.jpg"
-    cm_plot(cm, path, data_type)
-    cm = confusion_matrix(results.T[0], results.T[1], normalize="pred")
+    vis.plot_cm(cm, names, path, False)
+    cm = confusion_matrix(results.T[0], results.T[1], normalize="pred").T
     path = f"{yolo_result_dir}/cm_{stage}_precision.jpg"
-    cm_plot(cm, path, data_type)
-    cm = confusion_matrix(results.T[0], results.T[1], normalize="all")
+    vis.plot_cm(cm, names, path, False)
+    cm = confusion_matrix(results.T[0], results.T[1], normalize="all").T
     path = f"{yolo_result_dir}/cm_{stage}_f1.jpg"
-    cm_plot(cm, path, data_type)
+    vis.plot_cm(cm, names, path, False)
 
     path = f"{yolo_result_dir}/cm_{stage}_report.tsv"
     report = classification_report(
@@ -81,16 +78,3 @@ def pred_classify(img_paths, stage, yolo_result_dir, data_type):
     )
     pd.DataFrame.from_dict(report).T.to_csv(path, sep="\t")
     return results, missed_img_paths
-
-
-def cm_plot(cm, path, data_type):
-    cmd = ConfusionMatrixDisplay(cm)
-    cmd.plot(
-        xticks_rotation="vertical",
-        include_values=data_type == "label_type",
-        cmap="Blues",
-    )
-    plt.xticks(fontsize=6)
-    plt.yticks(fontsize=6)
-    plt.savefig(path, bbox_inches="tight")
-    plt.close()
