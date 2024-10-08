@@ -4,10 +4,23 @@
 - Python 3.10.14
 
 ## Installation
+Install requirements.
+```
+conda env create -n labvideo -f env-base.yaml
+conda activate labvideo
+```
+
+Install LLaVA.
 ```
 git submodule --init
-conda env -f env.yml
-pip install -U torch==2.1.2 torchvision --index-url https://download.pytorch.org/whl/cu118
+cd submodules/llava
+pip install --upgrade pip
+pip install -e .
+```
+
+Install pytorch
+```
+conda install pytorch torchvision pytorch-cuda=11.8 -c pytorch -c nvidia
 ```
 
 
