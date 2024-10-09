@@ -77,7 +77,6 @@ def pred_classify(img_paths, stage, yolo_result_dir, labels):
 
     # cm = confusion_matrix(results.T[0], results.T[1], normalize="true").T
     cm_recall = cm / (cm.sum(axis=0, keepdims=True) + 1e-9)
-    print(np.max(cm_recall))
     path = f"{yolo_result_dir}/cm_{stage}_recall.jpg"
     vis.plot_cm(cm_recall, labels, path, True)
 
@@ -87,7 +86,7 @@ def pred_classify(img_paths, stage, yolo_result_dir, labels):
     vis.plot_cm(cm_precision, labels, path, True)
 
     # cm = confusion_matrix(results.T[0], results.T[1], normalize="all").T
-    cm_f1 = 2 / ((1 / cm_recall) + (1 / cm_precision) + 1e-9)
+    cm_f1 = 2 / ((1 / (cm_recall + 1e-9)) + (1 / (cm_precision + 1e-9)) + 1e-9)
     path = f"{yolo_result_dir}/cm_{stage}_f1.jpg"
     vis.plot_cm(cm_f1, labels, path, True)
 
