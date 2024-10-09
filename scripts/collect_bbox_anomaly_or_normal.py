@@ -166,13 +166,6 @@ def collect_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, img_d
             for ann in ann_lst_tmp:
                 ann_bbox = ann[1:5].astype(np.float32)
                 label = ann[8]
-                try:
-                    label = label.split("(")[1].replace(
-                        ")", ""
-                    )  # extract within bracket
-                except IndexError:
-                    print("error label", video_name, label)
-                    continue
                 labels.append(label)
 
                 # plot annotation
@@ -250,7 +243,7 @@ if __name__ == "__main__":
     }
 
     img_dir = "datasets/images"
-    for video_id in tqdm(list(ann_json.keys())[21:], ncols=100):
+    for video_id in tqdm(ann_json.keys(), ncols=100):
         if video_id not in info_json:
             tqdm.write(f"{video_id} is not in info.json")
             continue
