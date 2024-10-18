@@ -85,7 +85,6 @@ if __name__ == "__main__":
         create_anomaly_detection_dataset(data, test_idxs, dataset_dir, "test")
 
     if args.train:
-        # train YOLO
         yolo_result_dir = train_anomaly(data_name, split_type)
     else:
         # only prediction
@@ -93,13 +92,13 @@ if __name__ == "__main__":
         if v_num is not None:
             yolo_result_dir += f"-v{v_num}"
 
-    # prediction
-    results_train, missed_img_path_train = pred_anomaly(
-        data_name, split_type, "train", yolo_result_dir
-    )
-    results_test, missed_img_path_test = pred_anomaly(
-        data_name, split_type, "test", yolo_result_dir
-    )
+    # # prediction
+    # results_train, missed_img_path_train = pred_anomaly(
+    #     data_name, split_type, "train", yolo_result_dir
+    # )
+    # results_test, missed_img_path_test = pred_anomaly(
+    #     data_name, split_type, "test", yolo_result_dir
+    # )
 
     # missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
     # if os.path.exists(missed_imgs_dir):

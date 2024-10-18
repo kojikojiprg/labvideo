@@ -11,6 +11,7 @@ sys.path.append(".")
 from src.data import (
     collect_images_classification_dataset,
     create_classification_dataset,
+    split_train_test_by_annotation,
     split_train_test_by_video,
 )
 from src.model.classify import pred_classify, train_classify
@@ -19,7 +20,7 @@ from src.utils import json_handler
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_type", type=str, help="'label' or 'label_type'")
-    parser.add_argument("split_type", type=str, help="'all' or 'video'")
+    parser.add_argument("split_type", type=str, help="'all', 'video' or 'annotation'")
 
     # optional
     parser.add_argument("-iou", "--th_iou", required=False, type=float, default=0.1)
@@ -81,36 +82,46 @@ if __name__ == "__main__":
             train_length = int(len(data) * 0.7)
             train_idxs = random_idxs[:train_length]
             test_idxs = random_idxs[train_length:]
-        else:
+        elif split_type == "video":
             train_idxs, test_idxs = split_train_test_by_video(data, video_id_to_name)
+        elif split_type == "annotation":
+            train_idxs, test_idxs = split_train_test_by_annotation(data)
+        else:
+            raise ValueError(
+                f"{split_type} is not selected from 'all', 'video' or 'annotation'."
+            )
 
         create_classification_dataset(data, train_idxs, dataset_dir, data_type, "train")
         create_classification_dataset(data, test_idxs, dataset_dir, data_type, "test")
 
-    if args.train:
-        # train YOLO
-        yolo_result_dir = train_classify(data_name, data_type, split_type)
-    else:
-        # only prediction
-        v_num = args.version
-        if v_num is not None:
-            yolo_result_dir += f"-v{v_num}"
+    # if args.train:
+    #     # train YOLO
+    #     yolo_result_dir = train_classify(data_name, data_type, split_type)
+    # else:
+    #     # only prediction
+    #     v_num = args.version
+    #     if v_num is not None:
+    #         yolo_result_dir += f"-v{v_num}"
 
-    # prediction
-    train_paths = glob(os.path.join(dataset_dir, "train", "**", "*.jpg"))
-    test_paths = glob(os.path.join(dataset_dir, "test", "**", "*.jpg"))
+    # # prediction
+    # train_paths = glob(os.path.join(dataset_dir, "train", "**", "*.jpg"))
+    # test_paths = glob(os.path.join(dataset_dir, "test", "**", "*.jpg"))
 
-    train_labels = np.loadtxt(f"{dataset_dir}/summary_train.tsv", str, delimiter="\t")[:-1].T[0]
-    test_labels = np.loadtxt(f"{dataset_dir}/summary_test.tsv", str, delimiter="\t")[:-1].T[0]
-    labels = train_labels.tolist() + test_labels.tolist()
-    labels = np.unique(sorted(labels))
+    # train_labels = np.loadtxt(f"{dataset_dir}/summary_train.tsv", str, delimiter="\t")[
+    #     :-1
+    # ].T[0]
+    # test_labels = np.loadtxt(f"{dataset_dir}/summary_test.tsv", str, delimiter="\t")[
+    #     :-1
+    # ].T[0]
+    # labels = train_labels.tolist() + test_labels.tolist()
+    # labels = np.unique(sorted(labels))
 
-    results_train, missed_img_path_train = pred_classify(
-        train_paths, "train", yolo_result_dir, labels
-    )
-    results_test, missed_img_path_test = pred_classify(
-        test_paths, "test", yolo_result_dir, labels
-    )
+    # results_train, missed_img_path_train = pred_classify(
+    #     train_paths, "train", yolo_result_dir, labels
+    # )
+    # results_test, missed_img_path_test = pred_classify(
+    #     test_paths, "test", yolo_result_dir, labels
+    # )
 
     # missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
     # if os.path.exists(missed_imgs_dir):

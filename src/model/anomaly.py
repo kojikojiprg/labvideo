@@ -17,17 +17,51 @@ from tqdm import tqdm
 
 def imread(img_path, img_size):
     img = cv2.imread(img_path)
-    img = cv2.resize(img, img_size)
-    img = (img / 255) * 2 - 1
+    # img = cv2.resize(img, img_size)
+    # img = (img / 255) * 2 - 1
     return img
+
+
+class FeatureExtractor:
+    def __init__(self, n_vocabularies):
+        self._sift = cv2.SIFT_create()
+        self._trainer = cv2.BOWKMeansTrainer(n_vocabularies)
+        index_params = dict(algorithm=1, trees=5)
+        search_params = {}
+        flann = cv2.FlannBasedMatcher(index_params, search_params)
+        self._extractor = cv2.BOWImgDescriptorExtractor(self._sift, flann)
+
+    def add_samples(self, imgs):
+        for img in imgs:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            keypoints, descriptors = self._sift.detectAndCompute(gray, None)
+            self._trainer.add(descriptors)
+
+    def create_vocablaries(self):
+        voc = self._trainer.cluster()
+        self._extractor.setVocabulary(voc)
+        return voc
+
+    def extract_keypoints(self, img):
+        keypoints = self._extractor.detect(img)
+        img_sift = cv2.drawKeypoints(img, keypoints, None, flags=4)
+        cv2.imwrite("sift_img.jpg", img_sift)
+        raise KeyError
+        return self._extractor.compute(img, keypoints)
 
 
 def train_anomaly(data_name, split_type, img_size=(32, 32)):
     data_root = f"datasets/anomaly/{data_name}/{split_type}"
     dataset_path = f"{data_root}/train.tsv"
-    data = np.loadtxt(dataset_path, dtype=str, delimiter="\t")
+    data = np.loadtxt(dataset_path, dtype=str, delimiter="\t")[:1000]
     normal_img_paths = [d[2] for d in data if int(d[1]) == 0]
-    normal_imgs = [imread(path, img_size) for path in normal_img_paths]
+    normal_imgs = [imread(path, img_size) for path in tqdm(normal_img_paths)]
+
+    fe = FeatureExtractor(128)
+    fe.add_samples(normal_imgs)
+    fe.create_vocablaries()
+    fe.extract_keypoints(normal_imgs[0])
+
     X = np.array(normal_imgs)
     X = X.reshape(X.shape[0], -1)
 

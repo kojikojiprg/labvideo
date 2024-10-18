@@ -23,7 +23,9 @@ def create_classification_annotation_dataset(data, idxs, dataset_dir, data_type,
 
 
 def create_classification_dataset(data, idxs, dataset_dir, data_type, stage):
-    dataset_summary = {}
+    label_counts = {}
+    video_counts_per_label = {}
+    video_names = []
     for i, idx in enumerate(tqdm(idxs, ncols=100)):
         key, label, img_path = data[idx]
         img = cv2.imread(img_path)
@@ -46,14 +48,26 @@ def create_classification_dataset(data, idxs, dataset_dir, data_type, stage):
 
         cv2.imwrite(img_path, img)
 
-        if lbl_txt not in dataset_summary:
-            dataset_summary[lbl_txt] = 0
-        dataset_summary[lbl_txt] += 1
+        if lbl_txt not in label_counts:
+            label_counts[lbl_txt] = 0
+            video_counts_per_label[lbl_txt] = []
+        label_counts[lbl_txt] += 1
+        video_name = key.split("-")[0]
+        if video_name not in video_counts_per_label[lbl_txt]:
+            video_counts_per_label[lbl_txt].append(video_name)
+        if video_name not in video_names:
+            video_names.append(video_name)
 
-    dataset_summary = list(dataset_summary.items())
-    dataset_summary = sorted(dataset_summary, key=lambda x: x[0])
+    label_counts = list(label_counts.items())
+    label_counts = sorted(label_counts, key=lambda x: x[0])
+
+    dataset_summary = []
+    for label, count in label_counts:
+        video_count = len(video_counts_per_label[label])
+        dataset_summary.append((label, count, video_count))
+
     assert sum([d[1] for d in dataset_summary]) == len(idxs)
-    dataset_summary.append(("total", len(idxs)))
+    dataset_summary.append(("total", len(idxs), len(video_names)))
     path = f"{dataset_dir}/summary_{stage}.tsv"
     np.savetxt(path, dataset_summary, "%s", delimiter="\t")
 
