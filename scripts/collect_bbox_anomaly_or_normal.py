@@ -25,17 +25,16 @@ def load_annotation(video_name):
     # except error annotation
     ann_lst = ann_lst[~np.all(ann_lst.T[1:5].astype(float) == 0.0, axis=0)]
 
-    # extract frame number of each annotation
-    n_frames = []
-    for label in np.unique(ann_lst.T[8]):
-        ann_lst_tmp = ann_lst[ann_lst.T[8] == label]
-        n_frame = int(ann_lst_tmp[0, 0])
-        n_frames.append(n_frame)
+    # extract frame number that contains annotations
+    n_frames = np.unique(ann_lst.T[0]).astype(int)
 
     return ann_lst, n_frames
 
 
 def is_annotation_contained_on(n_frame, ann_n_frames, th_n_frame, frame_count):
+    if n_frame in ann_n_frames:
+        return True, n_frame
+
     is_annotation_contained = False
     for ann_n_frame in ann_n_frames:
         th_min = max(ann_n_frame - th_n_frame, 0)
@@ -58,14 +57,21 @@ def crop_img(frame, bbox):
     return frame[y1:y2, x1:x2]
 
 
-def plot_save_normal_bboxs(yolo_preds, frame, n_frame, img_dir):
+def save_bboxs(yolo_preds, frame, n_frame, img_dir):
     for i, pred in enumerate(yolo_preds):
         x1, y1, x2, y2 = calc_resized_bbox(
             pred[1:5].astype(float), bbox_ratio, frame.shape[:2]
         )
-        img = crop_img(frame, (x1, y1, x2, y2))
+        img = crop_img(frame.copy(), (x1, y1, x2, y2))
         img_path = f"{img_dir}/{n_frame}_{i}.jpg"
         cv2.imwrite(img_path, img)
+
+
+def plot_normal_bboxs(yolo_preds, frame):
+    for pred in yolo_preds:
+        x1, y1, x2, y2 = calc_resized_bbox(
+            pred[1:5].astype(float), bbox_ratio, frame.shape[:2]
+        )
 
         green = (0, 255, 0)  # BGR
         frame = cv2.rectangle(frame, (x1, y1), (x2, y2), green, 1)
@@ -73,16 +79,11 @@ def plot_save_normal_bboxs(yolo_preds, frame, n_frame, img_dir):
     return frame
 
 
-def plot_save_anomaly_bboxs(labels, yolo_preds, frame, n_frame, img_dir):
-    for i, (pred, label) in enumerate(zip(yolo_preds, labels)):
+def plot_anomaly_bboxs(labels, yolo_preds, frame):
+    for pred, label in zip(yolo_preds, labels):
         x1, y1, x2, y2 = calc_resized_bbox(
             pred[1:5].astype(float), bbox_ratio, frame.shape[:2]
         )
-        img = crop_img(frame, (x1, y1, x2, y2))
-        img_path = f"{img_dir}/{label}/{n_frame}_{i}.jpg"
-        if not os.path.exists(os.path.dirname(img_path)):
-            os.makedirs(os.path.dirname(img_path))
-        cv2.imwrite(img_path, img)
 
         red = (0, 0, 255)  # BGR
         frame = cv2.rectangle(frame, (x1, y1), (x2, y2), red, 1)
@@ -137,7 +138,8 @@ def collect_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, img_d
     os.makedirs(img_dir_anomaly)
 
     for n_frame in tqdm(range(frame_count), ncols=100, desc=video_name):
-        ret, frame = cap.read()
+        ret, frame_raw = cap.read()
+        frame = frame_raw.copy()
         if not ret:
             print(f"frame not loaded from n_frame {n_frame} in {video_name}.mp4")
             continue
@@ -154,9 +156,8 @@ def collect_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, img_d
 
         if not is_annotation_contained:
             # annotation is not found in this frame
-            frame = plot_save_normal_bboxs(
-                yolo_preds_tmp, frame, n_frame, img_dir_normal
-            )
+            frame = plot_normal_bboxs(yolo_preds_tmp, frame)
+            save_bboxs(yolo_preds_tmp, frame_raw, n_frame, img_dir_normal)
         else:
             ann_lst_tmp = ann_lst[ann_lst.T[0].astype(int) == ann_n_frame]
 
@@ -183,7 +184,7 @@ def collect_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, img_d
                 )
 
                 iou = calc_ious(ann_bbox, yolo_preds_tmp[:, 1:5].astype(np.float32))
-                ious.append(iou.reshape(-1, 1))
+                ious.append(iou)
 
             if len(ious) == 0:
                 raise ValueError("not found annotation")
@@ -191,24 +192,22 @@ def collect_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, img_d
                 ious = ious[0].ravel()
                 labels = np.array([labels[0] for _ in range(len(ious))])
             else:
-                ious = np.concatenate(ious, axis=1)
+                ious = np.array(ious)
 
                 # select the label which has the highest iou score
-                labels = np.choose(np.argmax(ious, axis=1), labels)
-                ious = np.max(ious, axis=1)
+                labels = np.choose(np.argmax(ious, axis=0).ravel(), np.array(labels))
+                ious = np.max(ious, axis=0)
 
             mask = ious >= th_iou
             yolo_preds_low_iou = yolo_preds_tmp[~mask]
             yolo_preds_high_iou = yolo_preds_tmp[mask]
             labels = labels[mask]
 
-            frame = plot_save_normal_bboxs(
-                yolo_preds_low_iou, frame, n_frame, img_dir_normal
-            )
+            frame = plot_normal_bboxs(yolo_preds_low_iou, frame)
+            save_bboxs(yolo_preds_low_iou, frame_raw, n_frame, img_dir_normal)
 
-            frame = plot_save_anomaly_bboxs(
-                labels, yolo_preds_high_iou, frame, n_frame, img_dir_anomaly
-            )
+            frame = plot_anomaly_bboxs(labels, yolo_preds_high_iou, frame)
+            save_bboxs(yolo_preds_low_iou, frame_raw, n_frame, img_dir_anomaly)
 
         wrt.write(frame)
 
