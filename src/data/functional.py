@@ -34,7 +34,7 @@ def calc_resized_bbox(bbox, bbox_ratio, frame_size):
 
 
 def split_train_test_by_video(data, video_id_to_name):
-    # data ("{video_name}-{label}, label, img")
+    # data ("{video_name}-{n(label)}, label, img")
 
     train_video_ids = np.loadtxt(
         "datasets/yolov8_finetuning/summary_dataset_train.tsv",
@@ -60,5 +60,32 @@ def split_train_test_by_video(data, video_id_to_name):
             train_idxs.append(i)
         elif video_name in test_video_names:
             test_idxs.append(i)
+
+    return train_idxs, test_idxs
+
+
+def split_train_test_by_annotation(data, seed=42):
+    # data ("{video_name}-{n(label)}, label, img")
+    np.random.seed(seed)
+
+    idxs_dict = {}
+    for i, d in enumerate(data):
+        key = d[0]
+        if key not in idxs_dict:
+            idxs_dict[key] = []
+        idxs_dict[key].append(i)
+
+    unique_keys = list(idxs_dict.keys())
+    random_keys = np.random.choice(unique_keys, len(unique_keys))
+    train_length = int(len(unique_keys) * 0.7)
+    train_keys = random_keys[:train_length]
+    test_keys = random_keys[train_length:]
+
+    train_idxs = []
+    for key in train_keys:
+        train_idxs += idxs_dict[key]
+    test_idxs = []
+    for key in test_keys:
+        test_idxs += idxs_dict[key]
 
     return train_idxs, test_idxs

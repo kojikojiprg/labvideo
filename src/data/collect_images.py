@@ -50,6 +50,13 @@ def collect_images_classification_dataset(
     for path in anomaly_img_paths:
         label = path.split("/")[-2]
         key = f"{video_name}-{label}"
+
+        try:
+            # extract within bracket
+            label = label.split("(")[1].replace(")", "")
+        except IndexError:
+            print("error label", video_name, label)
+            continue
         data.append((key, label, path))
 
     return data
