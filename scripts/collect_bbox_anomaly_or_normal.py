@@ -47,7 +47,7 @@ def is_annotation_contained_on(n_frame, ann_n_frames, th_n_frame, frame_count):
 
 
 def crop_img(frame, bbox):
-    x1, y1, x2, y2 = bbox
+    x1, y1, x2, y2 = bbox.astype(int)
     h, w = frame.shape[:2]
     x1 = max(0, x1)
     y1 = max(0, y1)
@@ -57,34 +57,25 @@ def crop_img(frame, bbox):
     return frame[y1:y2, x1:x2]
 
 
-def save_bboxs(yolo_preds, frame, n_frame, img_dir):
-    for i, pred in enumerate(yolo_preds):
-        x1, y1, x2, y2 = calc_resized_bbox(
-            pred[1:5].astype(float), bbox_ratio, frame.shape[:2]
-        )
-        img = crop_img(frame.copy(), (x1, y1, x2, y2))
+def save_bboxs(bboxs, frame, n_frame, img_dir):
+    for i, bbox in enumerate(bboxs):
+        img = crop_img(frame.copy(), bbox)
         img_path = f"{img_dir}/{n_frame}_{i}.jpg"
         cv2.imwrite(img_path, img)
 
 
-def plot_normal_bboxs(yolo_preds, frame):
-    for pred in yolo_preds:
-        x1, y1, x2, y2 = calc_resized_bbox(
-            pred[1:5].astype(float), bbox_ratio, frame.shape[:2]
-        )
-
+def plot_normal_bboxs(bboxs, frame):
+    for bbox in bboxs:
+        x1, y1, x2, y2 = bbox.astype(int)
         green = (0, 255, 0)  # BGR
         frame = cv2.rectangle(frame, (x1, y1), (x2, y2), green, 1)
 
     return frame
 
 
-def plot_anomaly_bboxs(labels, yolo_preds, frame):
-    for pred, label in zip(yolo_preds, labels):
-        x1, y1, x2, y2 = calc_resized_bbox(
-            pred[1:5].astype(float), bbox_ratio, frame.shape[:2]
-        )
-
+def plot_anomaly_bboxs(labels, bboxs, frame):
+    for bbox, label in zip(bboxs, labels):
+        x1, y1, x2, y2 = bbox.astype(int)
         red = (0, 0, 255)  # BGR
         frame = cv2.rectangle(frame, (x1, y1), (x2, y2), red, 1)
         frame = cv2.putText(
@@ -149,6 +140,13 @@ def collect_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, img_d
             wrt.write(frame)
             continue
 
+        # calc resized bboxs
+        bboxs = [
+            calc_resized_bbox(pred[1:5].astype(np.float32), bbox_ratio, cap.size)
+            for pred in yolo_preds_tmp
+        ]
+        bboxs = np.array(bboxs)
+
         # frame contains abnormal labels?
         is_annotation_contained, ann_n_frame = is_annotation_contained_on(
             n_frame, ann_n_frames, th_n_frame, frame_count
@@ -156,8 +154,8 @@ def collect_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, img_d
 
         if not is_annotation_contained:
             # annotation is not found in this frame
-            frame = plot_normal_bboxs(yolo_preds_tmp, frame)
-            save_bboxs(yolo_preds_tmp, frame_raw, n_frame, img_dir_normal)
+            frame = plot_normal_bboxs(bboxs, frame)
+            save_bboxs(bboxs, frame_raw, n_frame, img_dir_normal)
         else:
             ann_lst_tmp = ann_lst[ann_lst.T[0].astype(int) == ann_n_frame]
 
@@ -179,11 +177,11 @@ def collect_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, img_d
                     (x1, y1),
                     cv2.FONT_HERSHEY_COMPLEX,
                     0.7,
-                    (255, 255, 0),
+                    yellow,
                     1,
                 )
 
-                iou = calc_ious(ann_bbox, yolo_preds_tmp[:, 1:5].astype(np.float32))
+                iou = calc_ious(ann_bbox, bboxs)
                 ious.append(iou)
 
             if len(ious) == 0:
@@ -195,19 +193,20 @@ def collect_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, img_d
                 ious = np.array(ious)
 
                 # select the label which has the highest iou score
-                labels = np.choose(np.argmax(ious, axis=0).ravel(), np.array(labels))
+                idxs = np.argmax(ious, axis=0).ravel()
+                labels = np.array(labels)[idxs]
                 ious = np.max(ious, axis=0)
 
             mask = ious >= th_iou
-            yolo_preds_low_iou = yolo_preds_tmp[~mask]
-            yolo_preds_high_iou = yolo_preds_tmp[mask]
+            bboxs_low_iou = bboxs[~mask]
+            bboxs_high_iou = bboxs[mask]
             labels = labels[mask]
 
-            frame = plot_normal_bboxs(yolo_preds_low_iou, frame)
-            save_bboxs(yolo_preds_low_iou, frame_raw, n_frame, img_dir_normal)
+            frame = plot_normal_bboxs(bboxs_low_iou, frame)
+            save_bboxs(bboxs_low_iou, frame_raw, n_frame, img_dir_normal)
 
-            frame = plot_anomaly_bboxs(labels, yolo_preds_high_iou, frame)
-            save_bboxs(yolo_preds_low_iou, frame_raw, n_frame, img_dir_anomaly)
+            frame = plot_anomaly_bboxs(labels, bboxs_high_iou, frame)
+            save_bboxs(bboxs_low_iou, frame_raw, n_frame, img_dir_anomaly)
 
         wrt.write(frame)
 
@@ -242,7 +241,7 @@ if __name__ == "__main__":
     }
 
     img_dir = "datasets/images"
-    for video_id in tqdm(ann_json.keys(), ncols=100):
+    for video_id in tqdm(list(ann_json.keys()), ncols=100):
         if video_id not in info_json:
             tqdm.write(f"{video_id} is not in info.json")
             continue

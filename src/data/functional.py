@@ -30,7 +30,7 @@ def calc_resized_bbox(bbox, bbox_ratio, frame_size):
     x2 = int(xc + length / 2)
     y2 = int(yc + length / 2)
 
-    return (x1, y1, x2, y2)
+    return np.array([x1, y1, x2, y2])
 
 
 def split_train_test_by_video(data, video_id_to_name):
