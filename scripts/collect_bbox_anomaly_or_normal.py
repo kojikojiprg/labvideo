@@ -57,10 +57,15 @@ def crop_img(frame, bbox):
     return frame[y1:y2, x1:x2]
 
 
-def save_bboxs(bboxs, frame, n_frame, img_dir):
+def save_bboxs(bboxs, frame, n_frame, img_dir, labels=None):
     for i, bbox in enumerate(bboxs):
         img = crop_img(frame.copy(), bbox)
-        img_path = f"{img_dir}/{n_frame}_{i}.jpg"
+        if labels is None:
+            img_path = f"{img_dir}/{n_frame}_{i}.jpg"
+        else:
+            img_path = f"{img_dir}/{labels[i]}/{n_frame}_{i}.jpg"
+            if not os.path.exists(os.path.dirname(img_path)):
+                os.makedirs(os.path.dirname(img_path))
         cv2.imwrite(img_path, img)
 
 
@@ -206,7 +211,7 @@ def collect_bbox_anomaly_or_normal(video_name, th_sec, th_iou, bbox_ratio, img_d
             save_bboxs(bboxs_low_iou, frame_raw, n_frame, img_dir_normal)
 
             frame = plot_anomaly_bboxs(labels, bboxs_high_iou, frame)
-            save_bboxs(bboxs_low_iou, frame_raw, n_frame, img_dir_anomaly)
+            save_bboxs(bboxs_high_iou, frame_raw, n_frame, img_dir_anomaly, labels)
 
         wrt.write(frame)
 
