@@ -1,6 +1,4 @@
 import os
-import shutil
-from glob import glob
 
 import numpy as np
 import pandas as pd
@@ -11,33 +9,23 @@ from ultralytics import YOLO
 from src.utils import vis
 
 
-def train_classify(data_name, data_type, split_type, epochs=100, batch_size=128):
+def train_classify(data_name, data_type, split_type, epochs=100, batch_size=1024):
+    yolo_result_dir = f"runs/classify/{data_name}/{split_type}/{data_type}"
+
     model = YOLO("models/yolo/yolov8n-cls.pt")
     model = model.cuda()
     model.train(
         data=f"classify/{data_name}/{split_type}/{data_type}",
+        name=yolo_result_dir.replace("runs/classify/", ""),
+        task="classify",
         epochs=epochs,
         batch=batch_size,
-        task="classify",
+        optimizer="Adam",
+        lr0=0.001,
+        lrf=0.001,  # not schedule learning rate
+        momentum=0.9,  # momentum is beta1 (NOTE: beta2 is fixed to 0.999)
+        weight_decay=0.0,
     )
-
-    # get trained data dir
-    dirs = sorted(glob("runs/classify/train*/"))
-    trained_dir = dirs[-1]
-
-    yolo_result_dir = f"runs/classify/{data_name}/{split_type}/{data_type}"
-    if os.path.exists(yolo_result_dir):
-        dirs = sorted(glob(yolo_result_dir + "-v*/"))
-        if len(dirs) == 0:
-            v_num = 1
-        else:
-            last_dir = dirs[-1]
-            v_num = int(os.path.dirname(last_dir).split("-")[-1].replace("v", "")) + 1
-        yolo_result_dir = f"runs/classify/{data_name}/{data_type}-v{v_num}"
-        shutil.move(trained_dir, yolo_result_dir)
-    else:
-        shutil.move(trained_dir, yolo_result_dir)
-    os.makedirs(yolo_result_dir, exist_ok=True)
 
     return yolo_result_dir
 
