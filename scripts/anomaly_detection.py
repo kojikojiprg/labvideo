@@ -10,6 +10,7 @@ sys.path.append(".")
 from src.data import (
     collect_images_anomaly_detection_dataset,
     create_anomaly_detection_dataset,
+    split_train_test_by_annotation,
     split_train_test_by_video,
 )
 from src.model.anomaly import pred_anomaly, train_anomaly
@@ -17,7 +18,7 @@ from src.utils import json_handler
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("split_type", type=str, help="'all' or 'video'")
+    parser.add_argument("split_type", type=str, help="'all', 'video' or 'annotation'")
 
     # optional
     parser.add_argument("-iou", "--th_iou", required=False, type=float, default=0.1)
@@ -78,8 +79,14 @@ if __name__ == "__main__":
             train_length = int(len(data) * 0.7)
             train_idxs = random_idxs[:train_length]
             test_idxs = random_idxs[train_length:]
-        else:
+        elif split_type == "video":
             train_idxs, test_idxs = split_train_test_by_video(data, video_id_to_name)
+        elif split_type == "annotation":
+            train_idxs, test_idxs = split_train_test_by_annotation(data)
+        else:
+            raise ValueError(
+                f"{split_type} is not selected from 'all', 'video' or 'annotation'."
+            )
 
         create_anomaly_detection_dataset(data, train_idxs, dataset_dir, "train")
         create_anomaly_detection_dataset(data, test_idxs, dataset_dir, "test")
@@ -92,13 +99,13 @@ if __name__ == "__main__":
         if v_num is not None:
             yolo_result_dir += f"-v{v_num}"
 
-    # # prediction
-    # results_train, missed_img_path_train = pred_anomaly(
-    #     data_name, split_type, "train", yolo_result_dir
-    # )
-    # results_test, missed_img_path_test = pred_anomaly(
-    #     data_name, split_type, "test", yolo_result_dir
-    # )
+    # prediction
+    results_train, missed_img_path_train = pred_anomaly(
+        data_name, split_type, "train", yolo_result_dir
+    )
+    results_test, missed_img_path_test = pred_anomaly(
+        data_name, split_type, "test", yolo_result_dir
+    )
 
     # missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
     # if os.path.exists(missed_imgs_dir):

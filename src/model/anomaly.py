@@ -32,43 +32,61 @@ class FeatureExtractor:
         self._extractor = cv2.BOWImgDescriptorExtractor(self._sift, flann)
 
     def add_samples(self, imgs):
-        for img in imgs:
+        for img in tqdm(imgs):
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             keypoints, descriptors = self._sift.detectAndCompute(gray, None)
-            self._trainer.add(descriptors)
+            if descriptors is not None:
+                self._trainer.add(descriptors)
 
     def create_vocablaries(self):
         voc = self._trainer.cluster()
         self._extractor.setVocabulary(voc)
         return voc
 
+    def set_vocablaries(self, voc):
+        self._extractor.setVocabulary(voc)
+
     def extract_keypoints(self, img):
-        keypoints = self._extractor.detect(img)
+        keypoints = self._sift.detect(img)
         img_sift = cv2.drawKeypoints(img, keypoints, None, flags=4)
         cv2.imwrite("sift_img.jpg", img_sift)
-        raise KeyError
         return self._extractor.compute(img, keypoints)
 
 
-def train_anomaly(data_name, split_type, img_size=(32, 32)):
+def train_anomaly(data_name, split_type, img_size=(32, 32), n_vocabs=128, n_imgs=100000, seed=42):
     data_root = f"datasets/anomaly/{data_name}/{split_type}"
     dataset_path = f"{data_root}/train.tsv"
-    data = np.loadtxt(dataset_path, dtype=str, delimiter="\t")[:1000]
-    normal_img_paths = [d[2] for d in data if int(d[1]) == 0]
+    data = np.loadtxt(dataset_path, dtype=str, delimiter="\t")
+
+    # select imgs
+    print("loading train images")
+    normal_img_paths = np.array([d[2] for d in data if int(d[1]) == 0])
+    np.random.seed(seed)
+    idxs = np.random.choice(len(normal_img_paths), n_imgs, replace=False)
+    normal_img_paths = normal_img_paths[idxs]
     normal_imgs = [imread(path, img_size) for path in tqdm(normal_img_paths)]
 
-    fe = FeatureExtractor(128)
+    print("creating vocablaries")
+    fe = FeatureExtractor(n_vocabs)
     fe.add_samples(normal_imgs)
-    fe.create_vocablaries()
-    fe.extract_keypoints(normal_imgs[0])
+    voc = fe.create_vocablaries()
 
-    X = np.array(normal_imgs)
-    X = X.reshape(X.shape[0], -1)
+    print("extracting keypoints")
+    X = []
+    for img in tqdm(normal_imgs):
+        kps = fe.extract_keypoints(img)
+        if kps is None:
+            cv2.imwrite("none_img.jpg", img)
+            continue
+        X.append(kps)
+    X = np.array(X)
+    X = X.reshape(-1, n_vocabs)
 
+    print("training")
     model = svm.OneClassSVM(nu=0.1, kernel="rbf", gamma=0.1)
     model.fit(X)
 
-    result_dir = f"runs/anomaly/{split_type}/{data_name}"
+    result_dir = f"runs/anomaly/{data_name}/{split_type}"
     if os.path.exists(result_dir):
         dirs = sorted(glob(result_dir + "-v*/"))
         if len(dirs) == 0:
@@ -76,9 +94,11 @@ def train_anomaly(data_name, split_type, img_size=(32, 32)):
         else:
             last_dir = dirs[-1]
             v_num = int(os.path.dirname(last_dir).split("-")[-1].replace("v", "")) + 1
-        result_dir = f"runs/classify/{data_name}-v{v_num}"
+        result_dir = f"runs/anomaly/{data_name}/{split_type}-v{v_num}"
 
     os.makedirs(result_dir, exist_ok=True)
+    voc_path = f"{result_dir}/vocabs.npy"
+    np.save(voc_path, voc)
     model_path = f"{result_dir}/model.pkl"
     with open(model_path, "wb") as f:
         pickle.dump(model, f)
@@ -86,10 +106,15 @@ def train_anomaly(data_name, split_type, img_size=(32, 32)):
     return result_dir
 
 
-def pred_anomaly(data_name, split_type, stage, result_dir, img_size=(32, 32)):
+def pred_anomaly(data_name, split_type, stage, result_dir, img_size=(32, 32), n_vocabs=128):
     data_root = f"datasets/anomaly/{data_name}/{split_type}"
     dataset_path = f"{data_root}/{stage}.tsv"
     data = np.loadtxt(dataset_path, dtype=str, delimiter="\t")
+
+    voc_path = f"{result_dir}/vocabs.npy"
+    voc = np.load(voc_path)
+    fe = FeatureExtractor(n_vocabs)
+    fe.set_vocablaries(voc)
 
     model_path = f"{result_dir}/model.pkl"
     with open(model_path, "rb") as f:
@@ -99,8 +124,10 @@ def pred_anomaly(data_name, split_type, stage, result_dir, img_size=(32, 32)):
     missed_img_paths = []
     for _, label, img_path in tqdm(data):
         img = imread(img_path, img_size)
-        img = img.reshape(1, -1)
-        pred = model.predict(img).item()
+        kps = fe.extract_keypoints(img)
+        if kps is None:
+            continue
+        pred = model.predict(kps).item()
         pred = 0 if pred == -1 else 1
         results.append([label, pred])
         if label != pred:
