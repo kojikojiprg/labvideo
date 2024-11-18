@@ -11,6 +11,8 @@ from sklearn.metrics import (
     ConfusionMatrixDisplay,
     classification_report,
     confusion_matrix,
+    roc_auc_score,
+    roc_curve,
 )
 from tqdm import tqdm
 
@@ -53,7 +55,9 @@ class FeatureExtractor:
         return self._extractor.compute(img, keypoints)
 
 
-def train_anomaly(data_name, split_type, img_size=(32, 32), n_vocabs=128, n_imgs=100000, seed=42):
+def train_anomaly(
+    data_name, split_type, img_size=(32, 32), n_vocabs=128, n_imgs=100000, seed=42
+):
     data_root = f"datasets/anomaly/{data_name}/{split_type}"
     dataset_path = f"{data_root}/train.tsv"
     data = np.loadtxt(dataset_path, dtype=str, delimiter="\t")
@@ -106,7 +110,9 @@ def train_anomaly(data_name, split_type, img_size=(32, 32), n_vocabs=128, n_imgs
     return result_dir
 
 
-def pred_anomaly(data_name, split_type, stage, result_dir, img_size=(32, 32), n_vocabs=128):
+def pred_anomaly(
+    data_name, split_type, stage, result_dir, img_size=(32, 32), n_vocabs=128
+):
     data_root = f"datasets/anomaly/{data_name}/{split_type}"
     dataset_path = f"{data_root}/{stage}.tsv"
     data = np.loadtxt(dataset_path, dtype=str, delimiter="\t")
@@ -152,6 +158,18 @@ def pred_anomaly(data_name, split_type, stage, result_dir, img_size=(32, 32), n_
         results.T[0], results.T[1], digits=3, output_dict=True, zero_division=0
     )
     pd.DataFrame.from_dict(report).T.to_csv(path, sep="\t")
+
+    fpr, tpr, th = roc_curve(results.T[0], results.T[1])
+    rocauc = roc_auc_score(results.T[0], results.T[1])
+    plt.figure(figsize=(5, 5))
+    plt.plot(fpr, tpr, "-o")
+    plt.xlabel("FPR")
+    plt.ylabel("TPR")
+    plt.title(f"ROCAUC {rocauc:.3f}")
+    path = f"{result_dir}/{stage}_rocauc.jpg"
+    plt.savefig(path, bbox_inches="tight")
+    plt.close()
+
     return results, missed_img_paths
 
 
