@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
         np.random.seed(42)
         if split_type == "all":
-            random_idxs = np.random.choice(np.arange(len(data)), len(data))
+            random_idxs = np.random.choice(np.arange(len(data)), len(data), replace=False)
             train_length = int(len(data) * 0.7)
             train_idxs = random_idxs[:train_length]
             test_idxs = random_idxs[train_length:]

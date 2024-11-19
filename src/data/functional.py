@@ -70,22 +70,42 @@ def split_train_test_by_annotation(data, seed=42):
 
     idxs_dict = {}
     for i, d in enumerate(data):
-        key = d[0]
-        if key not in idxs_dict:
-            idxs_dict[key] = []
-        idxs_dict[key].append(i)
-
-    unique_keys = list(idxs_dict.keys())
-    random_keys = np.random.choice(unique_keys, len(unique_keys))
-    train_length = int(len(unique_keys) * 0.7)
-    train_keys = random_keys[:train_length]
-    test_keys = random_keys[train_length:]
+        label = d[1]
+        if label not in idxs_dict:
+            idxs_dict[label] = {}
+        video_name = d[0].split("-")[0]
+        if video_name not in idxs_dict[label]:
+            idxs_dict[label][video_name] = []
+        idxs_dict[label][video_name].append(i)
 
     train_idxs = []
-    for key in train_keys:
-        train_idxs += idxs_dict[key]
     test_idxs = []
-    for key in test_keys:
-        test_idxs += idxs_dict[key]
+    removed_labels = []
+    unique_labels = list(idxs_dict.keys())
+    for label in unique_labels:
+        unique_video_names = list(idxs_dict[label].keys())
 
-    return train_idxs, test_idxs
+        if len(unique_video_names) == 0:
+            print(label, "is removed.", unique_video_names)
+            removed_labels.append((label, "None", 0))
+            continue
+        elif len(unique_video_names) == 1:
+            print(label, "is removed.", unique_video_names)
+            removed_labels.append((label, unique_video_names[0], len(idxs_dict[label][unique_video_names[0]])))
+            continue
+
+        random_video_names = np.random.choice(
+            unique_video_names, len(unique_video_names), replace=False
+        )
+        train_length = int(len(unique_video_names) * 0.7)
+        train_video_names = random_video_names[:train_length]
+        test_video_names = random_video_names[train_length:]
+        # print(label, len(unique_video_names), train_length)
+
+        for vn in train_video_names:
+            train_idxs += idxs_dict[label][vn]
+        for vn in test_video_names:
+            test_idxs += idxs_dict[label][vn]
+
+    removed_labels = sorted(removed_labels, key=lambda x: x[0])
+    return train_idxs, test_idxs, removed_labels

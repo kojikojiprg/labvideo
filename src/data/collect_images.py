@@ -57,6 +57,8 @@ def collect_images_classification_dataset(
         except IndexError:
             print("error label", video_name, label)
             continue
+        if "_" in label:
+            label = label.split("_")[0]
         data.append((key, label, path))
 
     return data
