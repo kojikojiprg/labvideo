@@ -126,8 +126,8 @@ def pred_anomaly(
     with open(model_path, "rb") as f:
         model = pickle.load(f)
 
+    print("predicting", stage, "dataset")
     results = []
-    missed_img_paths = []
     for _, label, img_path in tqdm(data):
         img = imread(img_path, img_size)
         kps = fe.extract_keypoints(img)
@@ -135,9 +135,7 @@ def pred_anomaly(
             continue
         pred = model.predict(kps).item()
         pred = 0 if pred == -1 else 1
-        results.append([label, pred])
-        if label != pred:
-            missed_img_paths.append([img_path, label, pred])
+        results.append([int(label), pred])
 
     results = np.array(results)
     cm = confusion_matrix(results.T[0], results.T[1])
@@ -170,7 +168,7 @@ def pred_anomaly(
     plt.savefig(path, bbox_inches="tight")
     plt.close()
 
-    return results, missed_img_paths
+    return results
 
 
 def cm_plot(cm, path):

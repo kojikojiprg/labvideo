@@ -1,6 +1,5 @@
 import argparse
 import os
-import shutil
 import sys
 
 import numpy as np
@@ -75,7 +74,9 @@ if __name__ == "__main__":
 
         np.random.seed(42)
         if split_type == "all":
-            random_idxs = np.random.choice(np.arange(len(data)), len(data), replace=False)
+            random_idxs = np.random.choice(
+                np.arange(len(data)), len(data), replace=False
+            )
             train_length = int(len(data) * 0.7)
             train_idxs = random_idxs[:train_length]
             test_idxs = random_idxs[train_length:]
@@ -100,21 +101,7 @@ if __name__ == "__main__":
             yolo_result_dir += f"-v{v_num}"
 
     # prediction
-    results_train, missed_img_path_train = pred_anomaly(
-        data_name, split_type, "train", yolo_result_dir
-    )
-    results_test, missed_img_path_test = pred_anomaly(
-        data_name, split_type, "test", yolo_result_dir
-    )
-
-    # missed_imgs_dir = os.path.join(yolo_result_dir, "missed_images_test")
-    # if os.path.exists(missed_imgs_dir):
-    #     shutil.rmtree(missed_imgs_dir)
-    # os.makedirs(missed_imgs_dir, exist_ok=True)
-    # for path, label, pred_label in missed_img_path_test:
-    #     img_name = os.path.basename(path)
-    #     img_name = f"true-{label}_pred-{pred_label}_" + img_name
-    #     move_path = os.path.join(missed_imgs_dir, img_name)
-    #     shutil.copyfile(path, move_path)
+    results_train = pred_anomaly(data_name, split_type, "train", yolo_result_dir)
+    results_test = pred_anomaly(data_name, split_type, "test", yolo_result_dir)
 
     print("complete")
