@@ -52,14 +52,29 @@ def split_train_test_by_video(data, video_id_to_name):
     test_video_names = [video_id_to_name[_id] for _id in test_video_ids]
 
     # split data per label
-    train_idxs = []
-    test_idxs = []
+    train_idxs_all = {}
+    test_idxs_all = {}
     for i, d in enumerate(data):
         video_name = d[0].split("-")[0]
+        label = d[1]
         if video_name in train_video_names:
-            train_idxs.append(i)
+            if label not in train_idxs_all:
+                train_idxs_all[label] = []
+            train_idxs_all[label].append(i)
         elif video_name in test_video_names:
-            test_idxs.append(i)
+            if label not in test_idxs_all:
+                test_idxs_all[label] = []
+            test_idxs_all[label].append(i)
+
+    # cleansing
+    train_labels = set(list(train_idxs_all.keys()))
+    test_labels = set(list(test_idxs_all.keys()))
+    common_labels = list(train_labels & test_labels)
+    train_idxs = []
+    test_idxs = []
+    for label in common_labels:
+        train_idxs += train_idxs_all[label]
+        test_idxs += test_idxs_all[label]
 
     return train_idxs, test_idxs
 
@@ -91,7 +106,13 @@ def split_train_test_by_annotation(data, seed=42):
             continue
         elif len(unique_video_names) == 1:
             print(label, "is removed.", unique_video_names)
-            removed_labels.append((label, unique_video_names[0], len(idxs_dict[label][unique_video_names[0]])))
+            removed_labels.append(
+                (
+                    label,
+                    unique_video_names[0],
+                    len(idxs_dict[label][unique_video_names[0]]),
+                )
+            )
             continue
 
         random_video_names = np.random.choice(

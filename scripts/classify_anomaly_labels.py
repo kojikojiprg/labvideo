@@ -19,8 +19,15 @@ from src.utils import json_handler
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_type", type=str, help="'label' or 'label_type'")
-    parser.add_argument("split_type", type=str, help="'all', 'video' or 'annotation'")
+    parser.add_argument(
+        "data_type",
+        type=str,
+        choices=["label", "label_type"],
+        help="'label' or 'label_type'",
+    )
+    parser.add_argument(
+        "split_type", type=str, choices=["all", "video"], help="'all' or 'video'"
+    )
 
     # optional
     parser.add_argument("-iou", "--th_iou", required=False, type=float, default=0.1)
@@ -82,17 +89,19 @@ if __name__ == "__main__":
 
         np.random.seed(42)
         if split_type == "all":
-            random_idxs = np.random.choice(np.arange(len(data)), len(data), replace=False)
+            random_idxs = np.random.choice(
+                np.arange(len(data)), len(data), replace=False
+            )
             train_length = int(len(data) * 0.7)
             train_idxs = random_idxs[:train_length]
             test_idxs = random_idxs[train_length:]
         elif split_type == "video":
             train_idxs, test_idxs = split_train_test_by_video(data, video_id_to_name)
-        elif split_type == "annotation":
-            train_idxs, test_idxs, removed_labels = split_train_test_by_annotation(data)
-            path = f"{dataset_dir}/removed_labels.tsv"
-            np.savetxt(path, np.array(removed_labels), "%s", delimiter="\t")
-            print("saved", path)
+        # elif split_type == "annotation":
+        #     train_idxs, test_idxs, removed_labels = split_train_test_by_annotation(data)
+        #     path = f"{dataset_dir}/removed_labels.tsv"
+        #     np.savetxt(path, np.array(removed_labels), "%s", delimiter="\t")
+        #     print("saved", path)
         else:
             raise ValueError(
                 f"{split_type} is not selected from 'all', 'video' or 'annotation'."
