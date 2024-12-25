@@ -50,8 +50,8 @@ class FeatureExtractor:
 
     def extract_keypoints(self, img):
         keypoints = self._sift.detect(img)
-        img_sift = cv2.drawKeypoints(img, keypoints, None, flags=4)
-        cv2.imwrite("sift_img.jpg", img_sift)
+        # img_sift = cv2.drawKeypoints(img, keypoints, None, flags=4)
+        # cv2.imwrite("sift_img.jpg", img_sift)
         return self._extractor.compute(img, keypoints)
 
 
@@ -87,7 +87,7 @@ def train_anomaly(
     X = X.reshape(-1, n_vocabs)
 
     print("training")
-    model = svm.OneClassSVM(nu=0.1, kernel="rbf", gamma=0.1)
+    model = svm.OneClassSVM(nu=0.001, kernel="rbf", gamma=0.1)
     model.fit(X)
 
     result_dir = f"runs/anomaly/{data_name}/{split_type}"
