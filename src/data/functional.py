@@ -76,7 +76,17 @@ def split_train_test_by_video(data, video_id_to_name):
         train_idxs += train_idxs_all[label]
         test_idxs += test_idxs_all[label]
 
-    return train_idxs, test_idxs
+    train_remove_idxs = []
+    for label, idx in train_idxs_all.items():
+        if label not in common_labels:
+            train_remove_idxs += train_idxs_all[label]
+
+    test_remove_idxs = []
+    for label, idx in test_idxs_all.items():
+        if label not in common_labels:
+            test_remove_idxs += test_idxs_all[label]
+
+    return train_idxs, test_idxs, train_remove_idxs, test_remove_idxs
 
 
 def split_train_test_by_annotation(data, seed=42):

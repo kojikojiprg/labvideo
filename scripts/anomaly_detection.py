@@ -81,7 +81,9 @@ if __name__ == "__main__":
             train_idxs = random_idxs[:train_length]
             test_idxs = random_idxs[train_length:]
         elif split_type == "video":
-            train_idxs, test_idxs = split_train_test_by_video(data, video_id_to_name)
+            train_idxs, test_idxs, _, _ = split_train_test_by_video(
+                data, video_id_to_name
+            )
         elif split_type == "annotation":
             train_idxs, test_idxs = split_train_test_by_annotation(data)
         else:

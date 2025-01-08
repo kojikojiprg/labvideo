@@ -11,8 +11,8 @@ sys.path.append(".")
 from src.data import (
     collect_images_classification_dataset,
     create_classification_dataset,
-    split_train_test_by_annotation,
     split_train_test_by_video,
+    summarize_removed_dataset,
 )
 from src.model.classify import pred_classify, train_classify
 from src.utils import json_handler
@@ -96,7 +96,15 @@ if __name__ == "__main__":
             train_idxs = random_idxs[:train_length]
             test_idxs = random_idxs[train_length:]
         elif split_type == "video":
-            train_idxs, test_idxs = split_train_test_by_video(data, video_id_to_name)
+            train_idxs, test_idxs, train_remove_idxs, test_remove_idxs = (
+                split_train_test_by_video(data, video_id_to_name)
+            )
+            summarize_removed_dataset(
+                data, train_remove_idxs, dataset_dir, data_type, "train"
+            )
+            summarize_removed_dataset(
+                data, test_remove_idxs, dataset_dir, data_type, "test"
+            )
         # elif split_type == "annotation":
         #     train_idxs, test_idxs, removed_labels = split_train_test_by_annotation(data)
         #     path = f"{dataset_dir}/removed_labels.tsv"

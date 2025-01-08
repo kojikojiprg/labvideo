@@ -72,6 +72,45 @@ def create_classification_dataset(data, idxs, dataset_dir, data_type, stage):
     np.savetxt(path, dataset_summary, "%s", delimiter="\t")
 
 
+def summarize_removed_dataset(data, remmoved_idxs, dataset_dir, data_type, stage):
+    label_counts = {}
+    video_counts_per_label = {}
+    video_names = []
+    for i, idx in enumerate(tqdm(remmoved_idxs, ncols=100)):
+        key, label, img_path = data[idx]
+        if data_type == "label":
+            if "_" in label:
+                label = label.split("_")[0]  # delete surfix
+            lbl_txt = label  # A11~C42
+        elif data_type == "label_type":
+            lbl_txt = label[0]  # only A, B, C
+        else:
+            raise ValueError
+
+        if lbl_txt not in label_counts:
+            label_counts[lbl_txt] = 0
+            video_counts_per_label[lbl_txt] = []
+        label_counts[lbl_txt] += 1
+        video_name = key.split("-")[0]
+        if video_name not in video_counts_per_label[lbl_txt]:
+            video_counts_per_label[lbl_txt].append(video_name)
+        if video_name not in video_names:
+            video_names.append(video_name)
+
+    label_counts = list(label_counts.items())
+    label_counts = sorted(label_counts, key=lambda x: x[0])
+
+    dataset_summary = []
+    for label, count in label_counts:
+        video_count = len(video_counts_per_label[label])
+        dataset_summary.append((label, count, video_count))
+
+    assert sum([d[1] for d in dataset_summary]) == len(remmoved_idxs)
+    dataset_summary.append(("total", len(remmoved_idxs), len(video_names)))
+    path = f"{dataset_dir}/summary_{stage}_removed.tsv"
+    np.savetxt(path, dataset_summary, "%s", delimiter="\t")
+
+
 def create_anomaly_detection_dataset(data, idxs, dataset_dir, stage):
     data = np.array(data, dtype=str)
     data = data[idxs]
