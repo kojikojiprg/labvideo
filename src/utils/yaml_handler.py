@@ -11,6 +11,11 @@ def load(yaml_path: str) -> SimpleNamespace:
 
 
 def _get_reccursive(config: dict) -> SimpleNamespace:
+    # change numeric keys to string
+    for k in list(config.keys()):
+        if not isinstance(k, str):
+            config[str(k)] = config.pop(k)
+
     new_config = SimpleNamespace(**config)
     for name, values in new_config.__dict__.items():
         if type(values) is dict:
