@@ -7,7 +7,9 @@ from numpy.typing import NDArray
 cmap = plt.get_cmap("tab10")
 
 
-def plot_bbox_on_frame(frame: NDArray, bbox: NDArray) -> NDArray:
+def plot_bbox_on_frame(
+    frame: NDArray, bbox: NDArray, thickness: int = 2
+) -> NDArray:
     x1, y1, x2, y2 = bbox[:4].astype(int)
     pt1 = (x1, y1)
     pt2 = (x2, y2)
@@ -21,7 +23,7 @@ def plot_bbox_on_frame(frame: NDArray, bbox: NDArray) -> NDArray:
     c = tuple(c[::-1])  # RGB -> BGR
 
     # bbox
-    frame = cv2.rectangle(frame, pt1, pt2, c, 2)
+    frame = cv2.rectangle(frame, pt1, pt2, c, thickness)
 
     # label
     frame = cv2.putText(frame, str(label), pt1, cv2.FONT_HERSHEY_COMPLEX, 0.7, c, 1)
