@@ -144,3 +144,5 @@ for video_id, yolo_preds_append_diff in tqdm(yolo_preds_all.items(), ncols=100):
         wtr.write(frame)
 
     del cap, wtr
+
+print("complete")
