@@ -140,6 +140,10 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
         dtype=float,
     )
 
+    if len(ann_data) == 0:
+        tqdm.write(f"{video_name} doesn't have annotation.")
+        continue
+
     # get annotaion timing
     ann_unique_labels = np.unique(ann_data[:, 8])
     ann_timings = {ann_label: 0 for ann_label in ann_unique_labels}
