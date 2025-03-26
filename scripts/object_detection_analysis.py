@@ -1,5 +1,6 @@
 import os
 import sys
+import argparse
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,8 +9,14 @@ from tqdm import tqdm
 sys.path.append(".")
 from src.utils import json_handler, yaml_handler
 
-TH_MOVE = 4.55
-MAX_N_COUNTS = 5
+parser = argparse.ArgumentParser()
+parser.add_argument("th_move", type=float)
+parser.add_argument("-mc", "--max_n_counts", type=int, default=5)
+args = parser.parse_args()
+
+# th_move = 4.55  # OTSU
+th_move = args.th_move
+max_n_counts = args.max_n_counts
 
 # load json files
 ann_json = json_handler.load("annotation/annotation.json")
@@ -52,7 +59,7 @@ def create_legend(max_n_counts, marker_scale=100):
 
 
 def plot_timing(
-    counts_dict, ann_timings, fig_path, max_n_counts=MAX_N_COUNTS, marker_scale=100
+    counts_dict, ann_timings, fig_path, max_n_counts=max_n_counts, marker_scale=100
 ):
     fig = plt.figure(figsize=(12, 6))
     ax = fig.subplots(1, 1)
@@ -90,7 +97,7 @@ def plot_timing(
     plt.close()
 
 
-def plot_histogram(counts_dict, classes, fig_path, max_n_counts=MAX_N_COUNTS):
+def plot_histogram(counts_dict, classes, fig_path, max_n_counts=max_n_counts):
     labels = list(classes.values())
     cmap = plt.get_cmap("tab10")
 
@@ -135,7 +142,7 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
         f"out/{video_name}/{video_name}_ann.tsv", skiprows=1, dtype=str
     )
     yolo_preds = np.loadtxt(
-        f"out/{video_name}/{video_name}_det_finetuned_thmove{TH_MOVE}.tsv",
+        f"out/{video_name}/{video_name}_det_finetuned_thmove{th_move:.2f}.tsv",
         skiprows=1,
         dtype=float,
     )
@@ -171,19 +178,19 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
         if is_move:
             counts_dict_move[label][n_frame] += 1
 
-    out_dir = "out/object_detection_analysis/timing"
+    out_dir = f"out/object_detection_analysis/{th_move:.2f}/timing"
     os.makedirs(out_dir, exist_ok=True)
     fig_path = f"{out_dir}/{video_name}_object_timing.png"
-    plot_timing(counts_dict, ann_timings, fig_path, MAX_N_COUNTS)
+    plot_timing(counts_dict, ann_timings, fig_path, max_n_counts)
     fig_path = f"{out_dir}/{video_name}_object_timing_move.png"
-    plot_timing(counts_dict_move, ann_timings, fig_path, MAX_N_COUNTS)
+    plot_timing(counts_dict_move, ann_timings, fig_path, max_n_counts)
 
     # histogram
-    out_dir = "out/object_detection_analysis/histogram"
+    out_dir = f"out/object_detection_analysis/{th_move:.2f}/histogram"
     os.makedirs(out_dir, exist_ok=True)
     fig_path = f"{out_dir}/{video_name}_object_hist.png"
-    plot_histogram(counts_dict, classes, fig_path, MAX_N_COUNTS)
+    plot_histogram(counts_dict, classes, fig_path, max_n_counts)
     fig_path = f"{out_dir}/{video_name}_object_hist_move.png"
-    plot_histogram(counts_dict_move, classes, fig_path, MAX_N_COUNTS)
+    plot_histogram(counts_dict_move, classes, fig_path, max_n_counts)
 
 print("complete")

@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 
@@ -6,6 +7,11 @@ from tqdm import tqdm
 
 sys.path.append(".")
 from src.utils import json_handler, video, vis
+
+parser = argparse.ArgumentParser()
+parser.add_argument("th_move", type=float)
+args = parser.parse_args()
+th_move = args.th_move
 
 # load json files
 ann_json = json_handler.load("annotation/annotation.json")
@@ -86,13 +92,15 @@ def otsu_score(data, thresh):
 
 bbox_diffs = np.array(bbox_diffs)
 
-max_calc_value = 10
-freq = 100
-scores_otsu = np.zeros(max_calc_value * freq)
-for i in tqdm(range(len(scores_otsu)), ncols=100):
-    scores_otsu[i] = otsu_score(bbox_diffs, i / freq)
-thresh_otsu = np.argmax(scores_otsu) / freq
-print("thresholds", thresh_otsu)
+# calc threshold usin OTSU (Not Used)
+if th_move is None:
+    max_calc_value = 10
+    freq = 100
+    scores_otsu = np.zeros(max_calc_value * freq)
+    for i in tqdm(range(len(scores_otsu)), ncols=100):
+        scores_otsu[i] = otsu_score(bbox_diffs, i / freq)
+    th_move = np.argmax(scores_otsu) / freq
+    print("thresholds by OTSU", th_move)
 
 print("saving tsv")
 for video_id, yolo_preds_append_diff in tqdm(yolo_preds_all.items(), ncols=100):
@@ -100,14 +108,18 @@ for video_id, yolo_preds_append_diff in tqdm(yolo_preds_all.items(), ncols=100):
     tqdm.write(f"writing {video_name}")
 
     for i, pred in enumerate(tqdm(yolo_preds_append_diff, ncols=100, leave=False)):
-        yolo_preds_append_diff[i, -1] = int(pred[-2] >= thresh_otsu)
+        yolo_preds_append_diff[i, -1] = int(pred[-2] >= th_move)
 
     # save tsv
     out_dir = os.path.join("out", video_name)
     header = "n_frame\tx1\ty1\tx2\ty2\tconf\tcls\ttid\tstart_frame\ttracklet_len\tdiff\tis_move"
     fmt = ("%d", "%f", "%f", "%f", "%f", "%f", "%d", "%d", "%d", "%d", "%f", "%d")
-    det_tsv_path = os.path.join(out_dir, f"{video_name}_det_finetuned_thmove{thresh_otsu:.2f}.tsv")
-    np.savetxt(det_tsv_path, yolo_preds_append_diff, fmt, "\t", header=header, comments="")
+    det_tsv_path = os.path.join(
+        out_dir, f"{video_name}_det_finetuned_thmove{th_move:.2f}.tsv"
+    )
+    np.savetxt(
+        det_tsv_path, yolo_preds_append_diff, fmt, "\t", header=header, comments=""
+    )
 
 print("writing videos")
 for video_id, yolo_preds_append_diff in tqdm(yolo_preds_all.items(), ncols=100):
@@ -121,7 +133,7 @@ for video_id, yolo_preds_append_diff in tqdm(yolo_preds_all.items(), ncols=100):
     # create video writer
     out_dir = os.path.join("out", video_name)
     yolo_video_path = os.path.join(
-        out_dir, f"{video_name}_det_finetuned_thmove{thresh_otsu:.2f}.mp4"
+        out_dir, f"{video_name}_det_finetuned_thmove{th_move:.2f}.mp4"
     )
     wtr = video.Writer(yolo_video_path, cap.fps, cap.size)
 
@@ -136,7 +148,7 @@ for video_id, yolo_preds_append_diff in tqdm(yolo_preds_all.items(), ncols=100):
         ]
         for pred in yolo_preds_tmp:
             d = pred[-2]
-            if d < thresh_otsu:
+            if d < th_move:
                 thickness = 1
             else:
                 thickness = 3
