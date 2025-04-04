@@ -5,26 +5,24 @@ import sys
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.lines import Line2D
 from mpl_toolkits.mplot3d import axes3d
 from tqdm import tqdm
 
 sys.path.append(".")
-from src.utils import json_handler, video
+from src.utils import json_handler, video, yaml_handler
 
 plt.rcParams["axes.prop_cycle"] = plt.cycler("color", plt.get_cmap("tab20").colors)
+obj_cmap = plt.get_cmap("tab10")
 
 # parser
 parser = argparse.ArgumentParser()
-parser.add_argument("-f", "--finetuned_model", action="store_true")
 parser.add_argument("-tc", "--th_conf", required=False, default=0.3)
+parser.add_argument("-tm", "--th_move", required=False, default=1.0)
 args = parser.parse_args()
 
 th_conf = args.th_conf
-
-if args.finetuned_model:
-    str_finetuned = "_finetuned"
-else:
-    str_finetuned = ""
+th_move = args.th_move
 
 # load json files
 ann_json = json_handler.load("annotation/annotation.json")
@@ -37,6 +35,9 @@ video_id_to_name = {
     )
     if data[0] != "" and data[1] != ""
 }
+
+config = yaml_handler.load("datasets/yolov8_finetuning/yolov8_finetuning.yaml")
+classes = config.names.__dict__
 
 for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
     if video_id not in info_json:
@@ -53,7 +54,9 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
         f"out/{video_name}/{video_name}_ann.tsv", skiprows=1, dtype=str
     )
     yolo_preds = np.loadtxt(
-        f"out/{video_name}/{video_name}_det{str_finetuned}.tsv", skiprows=1, dtype=float
+        f"out/{video_name}/{video_name}_det_finetuned_thmove{th_move:.2f}.tsv",
+        skiprows=1,
+        dtype=float,
     )
 
     cap = video.Capture(f"video/{video_name}.mp4")
@@ -91,18 +94,32 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
             continue
         X, Y = np.mgrid[x1 : x2 : w - 1, y1 : y2 : h - 1]
         Z = np.full(X.shape, z)
+        label = int(pred[6])
+        c = obj_cmap(label)
         ax.plot_wireframe(
-            X, Y, Z, edgecolor="red", facecolor="white", alpha=0.1, rstride=w, cstride=h
+            X, Y, Z, edgecolor=c, facecolor="none", alpha=0.3, rstride=w, cstride=h
         )
+        # ax.plot_wireframe(
+        #     X, Y, Z, edgecolor="red", facecolor="white", alpha=0.1, rstride=w, cstride=h
+        # )
 
     # plot annotation
     if len(ann_data) > 0:
         for i, label in enumerate(np.unique(ann_data.T[8])):
-            tmp_data = ann_data[np.where(ann_data.T[8] == label)[0]]
-            X = tmp_data.T[5].astype(float)
-            Y = tmp_data.T[6].astype(float)
-            Z = tmp_data.T[0].astype(int)
-            ax.scatter(X, Y, Z, marker="o", label=label, s=10, alpha=0.9)
+            tmp_data = ann_data[ann_data.T[8] == label][0]
+            X = float(tmp_data[5])
+            Y = float(tmp_data[6])
+            Z = float(tmp_data[0])
+            ax.scatter(X, Y, Z, c="black", marker="o", s=50)
+            ax.text(
+                X,
+                Y,
+                Z + 20,
+                label,
+                horizontalalignment="center",
+                verticalalignment="bottom",
+            )
+            # ax.scatter(X, Y, Z, marker="o", label=label, s=50)
     else:
         tqdm.write(f"{video_name} doesn't have annotation.")
 
@@ -113,7 +130,10 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
     ax.set_xlim(0, frame_size[0])
     ax.set_ylim(0, frame_size[1])
     ax.set_zlim(0, frame_count)
-    ax.legend()
+    handles, labels = plt.gca().get_legend_handles_labels()
+    handles += [Line2D([0], [0], color=obj_cmap(int(i))) for i in classes.keys()]
+    labels += list(classes.values())
+    ax.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.7, 1.0))
     plt.gca().invert_xaxis()
 
     # img rotation
@@ -126,15 +146,16 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
         img = np.array(fig.canvas.renderer.buffer_rgba())
         img = cv2.cvtColor(img, cv2.COLOR_RGBA2BGR)
         img = img[250:-200, 150:-50]
+        # cv2.imwrite(f"{video_name}_{angle}.jpg", img)
+        # raise KeyError
         imgs.append(img)
 
     # write video
     size = imgs[0].shape[1::-1]
-    # wrt = video.Writer(f"out/{video_name}/{video_name}_plot.mp4", 30, size)
-    out_dir = f"out/compare_ann_det{str_finetuned}"
+    out_dir = "out/plot_3d_objects"
     # out_dir = "out/annotation_3d_plot"
     os.makedirs(out_dir, exist_ok=True)
-    wrt = video.Writer(f"{out_dir}/{video_name}_plot{str_finetuned}.mp4", 30, size)
+    wrt = video.Writer(f"{out_dir}/{video_name}.mp4", 10, size)
     wrt.write_each(imgs)
     del wrt
 
