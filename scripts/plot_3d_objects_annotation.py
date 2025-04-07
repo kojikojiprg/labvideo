@@ -18,10 +18,12 @@ obj_cmap = plt.get_cmap("tab10")
 # parser
 parser = argparse.ArgumentParser()
 parser.add_argument("-tc", "--th_conf", required=False, default=0.3)
+parser.add_argument("-m", "--move", required=False, action="store_true")
 parser.add_argument("-tm", "--th_move", required=False, default=1.0)
 args = parser.parse_args()
 
 th_conf = args.th_conf
+is_move = args.move
 th_move = args.th_move
 
 # load json files
@@ -85,6 +87,9 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
 
     # plot yolo
     for pred in tqdm(yolo_preds, ncols=100, leave=False, desc=f"{video_name} plot"):
+        if is_move and pred[11] == 0:
+            continue
+
         z, x1, y1, x2, y2 = pred[:5].astype(int)
         w, h = x2 - x1, y2 - y1
         conf = pred[5]
@@ -155,8 +160,11 @@ for video_id, ann_lst in tqdm(ann_json.items(), ncols=100):
     out_dir = "out/plot_3d_objects"
     # out_dir = "out/annotation_3d_plot"
     os.makedirs(out_dir, exist_ok=True)
-    wrt = video.Writer(f"{out_dir}/{video_name}.mp4", 10, size)
+    str_move = "_move" if is_move else ""
+    wrt = video.Writer(f"{out_dir}/{video_name}{str_move}.mp4", 10, size)
     wrt.write_each(imgs)
     del wrt
 
     plt.close()
+
+print("complete")
